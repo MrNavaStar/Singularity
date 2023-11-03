@@ -1,6 +1,7 @@
 package me.mrnavastar.singularity.common.networking;
 
 import io.netty.buffer.ByteBuf;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
@@ -11,7 +12,7 @@ import java.util.UUID;
 
 @Getter
 @NoArgsConstructor
-@RequiredArgsConstructor
+@AllArgsConstructor
 public class PlayerDataPacket implements ProtoPacket {
 
     private UUID id;
