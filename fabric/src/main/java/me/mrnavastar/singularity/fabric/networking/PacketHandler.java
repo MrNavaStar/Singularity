@@ -16,7 +16,7 @@ import java.util.ArrayList;
 
 public class PacketHandler implements ProtoPacketHandler {
 
-    // This array should only every have one connection in it, mostly just a list encase weird stuff happens
+    // This array should only ever have one connection in it, mostly just a list encase weird stuff happens
     private static final ArrayList<ProtoConnection> proxyConnections = new ArrayList<>();
 
     @Override
@@ -47,13 +47,10 @@ public class PacketHandler implements ProtoPacketHandler {
     public static void registerEvents() {
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             ServerPlayerEntity player = handler.getPlayer();
-
             NbtCompound nbt = new NbtCompound();
             SyncEvents.SEND_PLAYER_DATA.getInvoker().trigger(player, nbt);
 
-            proxyConnections.forEach(connection -> {
-                connection.send(new PlayerDataPacket(player.getUuid(), player.getName().getString(), nbt.toString()));
-            });
+            proxyConnections.forEach(connection -> connection.send(new PlayerDataPacket(player.getUuid(), player.getName().getString(), nbt.toString())));
         });
     }
 }

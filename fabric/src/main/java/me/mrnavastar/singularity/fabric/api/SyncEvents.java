@@ -13,8 +13,12 @@ public class SyncEvents {
         callbacks.forEach(callback -> callback.trigger(player, nbt));
     });
 
+    // Add more events here
+
     @FunctionalInterface
     public interface PlayerData {
         void trigger(ServerPlayerEntity player, NbtCompound nbt);
     }
+
+    // Add more event interfaces here
 }
