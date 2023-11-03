@@ -1,0 +1,17 @@
+allprojects {
+    repositories {
+        mavenCentral()
+        maven { url = "https://api.modrinth.com/maven" }			            // Modrinth
+        maven { url = "https://repo.codemc.io/repository/maven-releases/" } 	// Adventure
+        maven { url = "https://repo.papermc.io/repository/maven-public/" }	    // Paper + Velocity
+    }
+}
+
+subprojects {
+    apply plugin: "java"
+
+    dependencies {
+        compileOnly "org.projectlombok:lombok:1.18.28"
+    	annotationProcessor "org.projectlombok:lombok:1.18.28"
+    }
+}
