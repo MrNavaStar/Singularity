@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "singularity",
+  "version": "${version}",
+  "name": "Singularity",
+  "description": "",
+  "authors": ["MrNavaStar"],
+  "contact": {
+    "repo": ""
+  },
+  "license": "All-Rights-Reserved",
+  "icon": "assets/singularity/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "server": [
+      "me.mrnavastar.singularity.fabric.Fabric"
+    ]
+  },
+  "mixins": [
+    "singularity.mixins.json"
+  ],
+  "accessWidener" : "singularity.accesswidener",
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric": "*",
+    "protoweaver": "*"
+  }
+}

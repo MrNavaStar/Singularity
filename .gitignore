@@ -1,4 +1,8 @@
 # Project exclude paths
 /.gradle/
-/fabric/.gradle/
-/fabric/build/
+/loader-common/.gradle/
+/loader-common/build/
+/loader-fabric/.gradle/
+/loader-fabric/build/
+/loader-forge/.gradle/
+/loader-forge/build/

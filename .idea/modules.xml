@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/common/singularity.common.main.iml" filepath="$PROJECT_DIR$/.idea/modules/common/singularity.common.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/common/singularity.common.test.iml" filepath="$PROJECT_DIR$/.idea/modules/common/singularity.common.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/loader-common/singularity.loader-common.iml" filepath="$PROJECT_DIR$/.idea/modules/loader-common/singularity.loader-common.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/loader-common/singularity.loader-common.main.iml" filepath="$PROJECT_DIR$/.idea/modules/loader-common/singularity.loader-common.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/loader-common/singularity.loader-common.test.iml" filepath="$PROJECT_DIR$/.idea/modules/loader-common/singularity.loader-common.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/loader-fabric/singularity.loader-fabric.main.iml" filepath="$PROJECT_DIR$/.idea/modules/loader-fabric/singularity.loader-fabric.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/loader-fabric/singularity.loader-fabric.test.iml" filepath="$PROJECT_DIR$/.idea/modules/loader-fabric/singularity.loader-fabric.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/loader-forge/singularity.loader-forge.main.iml" filepath="$PROJECT_DIR$/.idea/modules/loader-forge/singularity.loader-forge.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/loader-forge/singularity.loader-forge.test.iml" filepath="$PROJECT_DIR$/.idea/modules/loader-forge/singularity.loader-forge.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/proxy/singularity.proxy.main.iml" filepath="$PROJECT_DIR$/.idea/modules/proxy/singularity.proxy.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/proxy/singularity.proxy.test.iml" filepath="$PROJECT_DIR$/.idea/modules/proxy/singularity.proxy.test.iml" />
+    </modules>
+  </component>
+</project>
