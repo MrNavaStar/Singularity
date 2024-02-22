@@ -1,24 +1,22 @@
 package me.mrnavastar.singularity.fabric.api;
 
-import net.minecraft.nbt.NbtCompound;
+import me.mrnavastar.singularity.common.networking.SyncData;
 import net.minecraft.server.network.ServerPlayerEntity;
+
+import java.io.IOException;
 
 public class SyncEvents {
 
-    public static final Event<PlayerData> SEND_PLAYER_DATA = new Event<>(callbacks -> (player, nbt) -> {
-        callbacks.forEach(callback -> callback.trigger(player, nbt));
+    public static final Event<PlayerData> SEND_DATA = new Event<>(callbacks -> (player, data) -> {
+        callbacks.forEach(callback -> callback.trigger(player, data));
     });
 
-    public static final Event<PlayerData> RECEIVE_PLAYER_DATA = new Event<>(callbacks -> (player, nbt) -> {
-        callbacks.forEach(callback -> callback.trigger(player, nbt));
+    public static final Event<PlayerData> RECEIVE_DATA = new Event<>(callbacks -> (player, data) -> {
+        callbacks.forEach(callback -> callback.trigger(player, data));
     });
-
-    // Add more events here
 
     @FunctionalInterface
     public interface PlayerData {
-        void trigger(ServerPlayerEntity player, NbtCompound nbt);
+        void trigger(ServerPlayerEntity player, SyncData data) throws Exception;
     }
-
-    // Add more event interfaces here
 }

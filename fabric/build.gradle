@@ -13,8 +13,7 @@ dependencies {
     implementation project(configuration: 'default', path: ':core')
 
     // Protoweaver
-    implementation files("libs/api.jar")
-    implementation 'io.netty:netty-all:4.1.97.Final'
+    implementation files("libs/loader-fabric-debug-build.jar")
 
     // To change the versions see the gradle.properties file
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
