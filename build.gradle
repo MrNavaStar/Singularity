@@ -1,4 +1,16 @@
+plugins {
+    id "com.github.johnrengelman.shadow" version "8.1.1"
+    id "io.freefair.lombok" version "8.6"
+    id "architectury-plugin" version "3.4-SNAPSHOT"
+    id "dev.architectury.loom" version "1.5-SNAPSHOT" apply false
+}
+
 allprojects {
+    apply plugin: "java-library"
+    apply plugin: "com.github.johnrengelman.shadow"
+    apply plugin: "io.freefair.lombok"
+    apply plugin: "architectury-plugin"
+    
     repositories {
         mavenCentral()
         maven { url = "https://api.modrinth.com/maven" }			            // Modrinth
@@ -8,10 +20,37 @@ allprojects {
 }
 
 subprojects {
-    apply plugin: "java"
+    version = project.project_version
+    group = project.maven_group
 
     dependencies {
-        compileOnly "org.projectlombok:lombok:1.18.28"
-    	annotationProcessor "org.projectlombok:lombok:1.18.28"
+        compileOnly "org.projectlombok:lombok:${project.lombok_version}"
+	annotationProcessor "org.projectlombok:lombok:${project.lombok_version}"
     }
+    
+    task jarSources(type:Jar){
+        archiveBaseName.set("protoweaver")
+        archiveClassifier.set(project.name + "-sources")
+        exclude {
+            sourceSets.main.allSource.contains it.file
+        }
+        from delombok
+    }
+    
+    shadowJar {
+        archiveBaseName.set("protoweaver")
+        archiveClassifier.set(project.name)
+        configurations = [project.configurations.shadow]
+
+        dependencies {
+            mergeServiceFiles()
+        }
+    }
+    
+    jar {
+        archiveBaseName.set("singularity")
+        archiveClassifier.set(project.name)
+    }
+
+    jar.finalizedBy(jarSources)
 }

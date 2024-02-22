@@ -1,9 +1,11 @@
 pluginManagement {
     repositories {
-        maven { url = 'https://maven.fabricmc.net/' }
+        maven { url "https://maven.fabricmc.net/" }
+        maven { url "https://maven.architectury.dev/" }
+        maven { url "https://maven.minecraftforge.net/" }
         gradlePluginPortal()
     }
 }
 
 rootProject.name = 'singularity'
-include ':core', ':fabric', ':velocity'
+include ':common', ':loader-common', ':loader-fabric', 'loader-forge', ':proxy'

@@ -1,0 +1,7 @@
+dependencies {
+    // Protoweaver
+    implementation files("libs/protoweaver-debug-build-common.jar")
+
+    implementation "net.kyori:adventure-api:4.13.0"
+    implementation "com.google.code.gson:gson:2.10.1"
+}

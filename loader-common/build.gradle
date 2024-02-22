@@ -1,0 +1,16 @@
+apply plugin: "dev.architectury.loom"
+
+architectury {
+    injectInjectables = false
+    common(project.enabled_platforms.split(","))
+}
+
+dependencies {
+    implementation project(path: ':common', configuration: 'default')
+
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+    modCompileOnly "net.fabricmc:fabric-loader:${project.loader_version}"
+}
+
+jar.finalizedBy(shadowJar)

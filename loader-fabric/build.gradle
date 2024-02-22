@@ -1,0 +1,49 @@
+apply plugin: "dev.architectury.loom"
+
+architectury {
+    injectInjectables = false
+    platformSetupLoomIde()
+    fabric()
+}
+
+loom {
+    silentMojangMappingsLicense()
+}
+
+configurations {
+    common
+    shadowCommon // Don't use shadow from the shadow plugin because we don't want IDEA to index this.
+    compileClasspath.extendsFrom common
+    runtimeClasspath.extendsFrom common
+    developmentForge.extendsFrom common
+}
+
+dependencies {
+    shadowCommon(api(project(path: ":loader-common", configuration: "default")))
+    shadowCommon(api(project(path: ":loader-common", configuration: "transformProductionFabric"))) { transitive false }
+
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+    // Mod Compat
+    modImplementation "maven.modrinth:fabricproxy-lite:${project.proxy_lite_version}"
+    modLocalRuntime "com.moandjiezana.toml:toml4j:${project.toml4j_version}"
+
+    // Dev
+    modLocalRuntime "maven.modrinth:easy-eula:1.0.0"
+}
+
+shadowJar {
+    configurations = [project.configurations.shadowCommon]
+    minimize()
+}
+
+jar.finalizedBy(shadowJar)
+
+remapJar {
+    injectAccessWidener = true
+    input.set shadowJar.archiveFile
+    dependsOn shadowJar
+}
