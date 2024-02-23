@@ -7,7 +7,7 @@ architectury {
 }
 
 loom {
-    silentMojangMappingsLicense()
+    accessWidenerPath = project(':loader-common').loom.accessWidenerPath
 }
 
 configurations {
@@ -27,12 +27,12 @@ dependencies {
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
-    // Mod Compat
-    modImplementation "maven.modrinth:fabricproxy-lite:${project.proxy_lite_version}"
-    modLocalRuntime "com.moandjiezana.toml:toml4j:${project.toml4j_version}"
+    modImplementation files("libs/loader-fabric-debug-build.jar")
 
     // Dev
     modLocalRuntime "maven.modrinth:easy-eula:1.0.0"
+    modImplementation "maven.modrinth:fabricproxy-lite:${project.proxy_lite_version}"
+    modLocalRuntime "com.moandjiezana.toml:toml4j:${project.toml4j_version}"
 }
 
 shadowJar {

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "singularity",
-  "version": "${version}",
+  "version": "debug-build",
   "name": "Singularity",
   "description": "",
   "authors": ["MrNavaStar"],
@@ -13,15 +13,10 @@
   "environment": "*",
   "entrypoints": {
     "server": [
-      "me.mrnavastar.singularity.fabric.Fabric"
+      "me.mrnavastar.singularity.loader.Fabric"
     ]
   },
-  "mixins": [
-    "singularity.mixins.json"
-  ],
-  "accessWidener" : "singularity.accesswidener",
   "depends": {
-    "fabricloader": ">=${loader_version}",
     "fabric": "*",
     "protoweaver": "*"
   }

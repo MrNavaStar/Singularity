@@ -10,7 +10,7 @@ loom {
     forge {
         mixinConfig "protoweaver.mixins.json"
     }
-    silentMojangMappingsLicense()
+    //accessWidenerPath = project(":loader-common").loom.accessWidenerPath
 }
 
 configurations {

@@ -1,5 +1,6 @@
 package me.mrnavastar.singularity.loader.api;
 
+import me.mrnavastar.protoweaver.api.util.Event;
 import me.mrnavastar.singularity.common.networking.SyncData;
 import net.minecraft.server.network.ServerPlayerEntity;
 

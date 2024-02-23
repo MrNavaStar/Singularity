@@ -12,7 +12,6 @@ import me.mrnavastar.protoweaver.api.netty.ProtoConnection;
 import me.mrnavastar.protoweaver.api.protocol.Protocol;
 import me.mrnavastar.protoweaver.proxy.api.ProtoProxy;
 import me.mrnavastar.singularity.common.Constants;
-import me.mrnavastar.singularity.common.networking.Networking;
 import me.mrnavastar.singularity.common.networking.Settings;
 import me.mrnavastar.singularity.common.networking.SyncData;
 import org.slf4j.Logger;
@@ -29,8 +28,8 @@ public class Velocity implements ProtoConnectionHandler {
 
     private static final ConcurrentHashMap<UUID, SyncData> syncData = new ConcurrentHashMap<>();
 
-    private Settings settings = new Settings(true);
-    private final Protocol protocol = Networking.getSyncProtocol().modify()
+    private Settings settings = new Settings(true, true);
+    private final Protocol protocol = Constants.PROTOCOL.modify()
             .setClientHandler(Velocity.class)
             .build();
 
@@ -39,6 +38,7 @@ public class Velocity implements ProtoConnectionHandler {
 
     @Subscribe
     public void onProxyInitialization(ProxyInitializeEvent event) {
+        logger.info(Constants.BOOT_MESSAGE);
         ProtoWeaver.load(protocol);
     }
 

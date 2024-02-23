@@ -25,11 +25,11 @@ subprojects {
 
     dependencies {
         compileOnly "org.projectlombok:lombok:${project.lombok_version}"
-	annotationProcessor "org.projectlombok:lombok:${project.lombok_version}"
+	    annotationProcessor "org.projectlombok:lombok:${project.lombok_version}"
     }
     
     task jarSources(type:Jar){
-        archiveBaseName.set("protoweaver")
+        archiveBaseName.set("singularity")
         archiveClassifier.set(project.name + "-sources")
         exclude {
             sourceSets.main.allSource.contains it.file
@@ -38,7 +38,7 @@ subprojects {
     }
     
     shadowJar {
-        archiveBaseName.set("protoweaver")
+        archiveBaseName.set("singularity")
         archiveClassifier.set(project.name)
         configurations = [project.configurations.shadow]
 
