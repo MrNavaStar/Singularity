@@ -1,27 +1,51 @@
+plugins {
+    id "xyz.jpenilla.run-velocity" version "2.3.0"
+}
+
 group = 'me.mrnavastar'
 version = '1.0'
 
 dependencies {
-    implementation project(path: ':common', configuration: 'default')
-
-    implementation files("libs/protoweaver-debug-build-proxy.jar")
+    shadow implementation(project(path: ':common', configuration: 'default'))
 
     compileOnly "com.velocitypowered:velocity-api:3.2.0-SNAPSHOT"
     annotationProcessor "com.velocitypowered:velocity-api:3.2.0-SNAPSHOT"
+
+    implementation "me.mrnavastar.protoweaver:proxy:${project.protoweaver_version}"
 }
 
-def targetJavaVersion = 17
+shadowJar {
+    relocate "com.esotericsoftware", "me.mrnavastar.protoweaver.libs.esotericsoftware"
+}
+
+jar.finalizedBy(shadowJar)
+
+/*jar {
+    from {
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}*/
+
+def targetJavaVersion = 21
 java {
     def javaVersion = JavaVersion.toVersion(targetJavaVersion)
     sourceCompatibility = javaVersion
     targetCompatibility = javaVersion
-    if (JavaVersion.current() < javaVersion) {
-        toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
-    }
+    toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
 }
 
 tasks.withType(JavaCompile).configureEach {
     if (targetJavaVersion >= 10 || JavaVersion.current().isJava10Compatible()) {
         options.release = targetJavaVersion
+    }
+}
+
+tasks {
+    runVelocity {
+        velocityVersion(project.velocity_version)
+        downloadPlugins {
+            url("https://maven.mrnavastar.rocks/releases/me/mrnavastar/protoweaver/proxy/${project.protoweaver_version}/proxy-${project.protoweaver_version}.jar")
+        }
     }
 }

@@ -1,27 +1,38 @@
 plugins {
-    id "com.github.johnrengelman.shadow" version "8.1.1"
+    id "io.github.goooler.shadow" version "8.1.7"
     id "io.freefair.lombok" version "8.6"
     id "architectury-plugin" version "3.4-SNAPSHOT"
-    id "dev.architectury.loom" version "1.5-SNAPSHOT" apply false
+    id "dev.architectury.loom" version "1.6-SNAPSHOT" apply false
 }
 
 allprojects {
-    apply plugin: "java-library"
-    apply plugin: "com.github.johnrengelman.shadow"
-    apply plugin: "io.freefair.lombok"
     apply plugin: "architectury-plugin"
-    
+
+    version = project.project_version
+    group = project.maven_group
+
+    architectury {
+        minecraft = project.minecraft_version
+        compileOnly()
+    }
+
     repositories {
         mavenCentral()
+        maven { url "https://maven.mrnavastar.rocks/releases" }
         maven { url = "https://api.modrinth.com/maven" }			            // Modrinth
-        maven { url = "https://repo.codemc.io/repository/maven-releases/" } 	// Adventure
         maven { url = "https://repo.papermc.io/repository/maven-public/" }	    // Paper + Velocity
+    }
+
+    tasks.withType(JavaCompile) {
+        options.encoding = "UTF-8"
+        options.release = project.javaVersion as Integer
     }
 }
 
 subprojects {
-    version = project.project_version
-    group = project.maven_group
+    apply plugin: "java-library"
+    apply plugin: "io.github.goooler.shadow"
+    apply plugin: "io.freefair.lombok"
 
     dependencies {
         compileOnly "org.projectlombok:lombok:${project.lombok_version}"

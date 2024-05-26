@@ -11,6 +11,7 @@ public class Constants {
     public static final String MOD_NAME = "Singularity";
     public static final String MOD_ID = "singularity";
     public static final String VERSION = "debug-build";
+    public static final String AUTHOR = "MrNavaStar";
     public static final String BOOT_MESSAGE = "Warping space and time ...";
 
     public static final Protocol PROTOCOL = Protocol.create(MOD_ID, "sync")

@@ -1,6 +1,6 @@
 package me.mrnavastar.singularity.common.networking;
 
-public record Settings(
-        boolean syncPlayerData,
-        boolean syncPlayerStats
-) {}
+public class Settings {
+    public boolean syncPlayerData = true;
+    public boolean syncPlayerStats = true;
+}

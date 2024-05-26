@@ -1,12 +1,4 @@
 dependencies {
-    // Protoweaver
-    compileOnly files("libs/protoweaver-debug-build-common1.jar")
-    compileOnly "com.esotericsoftware:kryo5:${project.kryo_version}"
+    compileOnly "me.mrnavastar.protoweaver:common:${project.protoweaver_version}"
+    compileOnly "com.esotericsoftware:kryo5:5.6.0"
 }
-
-shadowJar {
-    // Use kryo bundled with protoweaver
-    relocate "com.esotericsoftware", "me.mrnavastar.protoweaver.libs.esotericsoftware"
-}
-
-jar.finalizedBy(shadowJar)

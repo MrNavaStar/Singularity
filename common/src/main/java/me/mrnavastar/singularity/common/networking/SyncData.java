@@ -5,8 +5,6 @@ import com.esotericsoftware.kryo.kryo5.io.Input;
 import com.esotericsoftware.kryo.kryo5.io.Output;
 import lombok.*;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.UUID;
@@ -28,9 +26,9 @@ public class SyncData {
 
     @SneakyThrows
     public void put(String key, Object object) {
-        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            kryo.writeObject(new Output(out), object);
-            map.put(key, out.toByteArray());
+        try (Output out = new Output()) {
+            kryo.writeObject(out, object);
+            map.put(key, out.toBytes());
         }
     }
 
@@ -39,8 +37,8 @@ public class SyncData {
         byte [] data = map.get(key);
         if (data == null) return null;
 
-        try (ByteArrayInputStream in = new ByteArrayInputStream(data)) {
-            return kryo.readObject(new Input(in), type);
+        try (Input in = new Input()) {
+            return kryo.readObject(in, type);
         }
     }
 

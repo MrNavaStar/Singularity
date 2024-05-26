@@ -1,11 +1,14 @@
 apply plugin: "dev.architectury.loom"
 
 architectury {
-    common(project.enabled_platforms.split(","))
+    common("fabric", "forge")
 }
 
 loom {
     accessWidenerPath = file("src/main/resources/singularity.accesswidener")
+    mixin {
+        defaultRefmapName = "singularity.refmap.json"
+    }
 }
 
 dependencies {
@@ -15,5 +18,5 @@ dependencies {
     mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
     modCompileOnly "net.fabricmc:fabric-loader:${project.loader_version}"
 
-    compileOnly files("libs/loader-fabric-debug-build.jar")
+    compileOnly "me.mrnavastar.protoweaver:common:${project.protoweaver_version}"
 }

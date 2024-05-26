@@ -1,0 +1,14 @@
+modLoader = "javafml"
+loaderVersion = "[26,)"
+license = "CC0-1.0"
+issueTrackerURL="https://github.com/MrNavaStar/Singularity/issues"
+
+[[mods]]
+modId = "singularity"
+version = "0.debug-build"
+displayName = "Singularity"
+displayURL="https://github.com/MrNavaStar/Singularity"
+authors="MrNavaStar"
+description = ""
+
+displayTest="IGNORE_ALL_VERSION"

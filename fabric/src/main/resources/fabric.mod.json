@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "singularity",
+  "version": "debug-build",
+  "name": "Singularity",
+  "description": "",
+  "authors": ["MrNavaStar"],
+  "contact": {
+    "repo": "https://github.com/MrNavaStar/Singularity"
+  },
+  "license": "CC0-1.0",
+  "icon": "assets/singularity/icon.png",
+  "environment": "server",
+  "entrypoints": {
+    "server": ["me.mrnavastar.singularity.loader.Fabric"]
+  },
+  "depends": {
+    "java": ">=21",
+    "fabric": "*",
+    "protoweaver": "*"
+  }
+}
