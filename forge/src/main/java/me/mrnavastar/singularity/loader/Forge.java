@@ -2,7 +2,7 @@ package me.mrnavastar.singularity.loader;
 
 import me.mrnavastar.singularity.common.Constants;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
@@ -21,7 +21,7 @@ public class Forge extends Singularity{
         log(Level.INFO, Constants.BOOT_MESSAGE);
 
         MinecraftForge.EVENT_BUS.addListener((Consumer<ServerStartedEvent>) event -> server = event.getServer());
-        MinecraftForge.EVENT_BUS.addListener((Consumer<PlayerEvent.PlayerLoggedOutEvent>) event -> syncData((ServerPlayerEntity) event.getEntity()));
+        MinecraftForge.EVENT_BUS.addListener((Consumer<PlayerEvent.PlayerLoggedOutEvent>) event -> syncData((ServerPlayer) event.getEntity()));
 
         MinecraftForge.EVENT_BUS.addListener((Consumer<RegisterCommandsEvent>) event -> registerCommands(event.getDispatcher(), event.getBuildContext(), event.getCommandSelection()));
     }

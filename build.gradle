@@ -1,28 +1,22 @@
 plugins {
-    id "io.github.goooler.shadow" version "8.1.7"
-    id "io.freefair.lombok" version "8.6"
+    id "io.freefair.lombok" version "8.6" apply false
     id "architectury-plugin" version "3.4-SNAPSHOT"
     id "dev.architectury.loom" version "1.6-SNAPSHOT" apply false
 }
 
 allprojects {
-    apply plugin: "architectury-plugin"
-
     version = project.project_version
     group = project.maven_group
 
-    architectury {
-        minecraft = project.minecraft_version
-        compileOnly()
-    }
-
     repositories {
         mavenCentral()
-        maven { url "https://maven.mrnavastar.rocks/releases" }
-        maven { url = "https://api.modrinth.com/maven" }			            // Modrinth
-        maven { url = "https://repo.papermc.io/repository/maven-public/" }	    // Paper + Velocity
+        maven { url "https://maven.mrnavastar.rocks/releases"}
+        maven { url "https://maven.minecraftforge.net" }                    // Forge
+        maven { url "https://maven.neoforged.net/releases/" }
+        maven { url "https://repo.papermc.io/repository/maven-public/" }    // Paper + Velocity
+        maven { url "https://api.modrinth.com/maven" }                      // Modrinth
     }
-
+    
     tasks.withType(JavaCompile) {
         options.encoding = "UTF-8"
         options.release = project.javaVersion as Integer
@@ -30,37 +24,24 @@ allprojects {
 }
 
 subprojects {
-    apply plugin: "java-library"
-    apply plugin: "io.github.goooler.shadow"
+    apply plugin: "java"
     apply plugin: "io.freefair.lombok"
+    apply plugin: "architectury-plugin"
 
     dependencies {
+        compileOnly "me.mrnavastar.protoweaver:common:${project.protoweaver_version}"
+        compileOnly "com.esotericsoftware:kryo5:${project.kyro_version}"
+
         compileOnly "org.projectlombok:lombok:${project.lombok_version}"
 	    annotationProcessor "org.projectlombok:lombok:${project.lombok_version}"
     }
-    
+
     task jarSources(type:Jar){
-        archiveBaseName.set("singularity")
-        archiveClassifier.set(project.name + "-sources")
+        archiveClassifier.set("sources")
         exclude {
             sourceSets.main.allSource.contains it.file
         }
         from delombok
-    }
-    
-    shadowJar {
-        archiveBaseName.set("singularity")
-        archiveClassifier.set(project.name)
-        configurations = [project.configurations.shadow]
-
-        dependencies {
-            mergeServiceFiles()
-        }
-    }
-    
-    jar {
-        archiveBaseName.set("singularity")
-        archiveClassifier.set(project.name)
     }
 
     jar.finalizedBy(jarSources)

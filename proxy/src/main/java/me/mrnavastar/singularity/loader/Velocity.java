@@ -18,10 +18,10 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Plugin(
-        id = Constants.MOD_ID,
-        name = Constants.MOD_NAME,
-        version = Constants.VERSION,
-        authors = Constants.AUTHOR
+        id = Constants.SINGULARITY_ID,
+        name = Constants.SINGULARITY_NAME,
+        version = Constants.SINGULARITY_VERSION,
+        authors = Constants.SINGULARITY_AUTHOR
 )
 public class Velocity implements ProtoConnectionHandler {
 
@@ -31,12 +31,12 @@ public class Velocity implements ProtoConnectionHandler {
     private Logger logger;
 
     static {
-        Constants.PROTOCOL.modify().setClientHandler(Velocity.class).load();
+        Constants.PROTOCOL.setClientHandler(Velocity.class).load();
     }
 
     @Subscribe
     public void onProxyInitialization(ProxyInitializeEvent event) {
-        logger.info(Constants.BOOT_MESSAGE);
+        logger.info(Constants.SINGULARITY_BOOT_MESSAGE);
     }
 
     @Subscribe
@@ -44,7 +44,7 @@ public class Velocity implements ProtoConnectionHandler {
         Player player = event.getPlayer();
         player.getCurrentServer().ifPresent(server -> {
             SyncData data = syncData.get(player.getUniqueId());
-            ProtoProxy.send(server.getServerInfo().getAddress(), data);
+            if (data != null) ProtoProxy.send(server.getServerInfo().getAddress(), data);
         });
     }
 

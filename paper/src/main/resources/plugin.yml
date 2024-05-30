@@ -1,0 +1,6 @@
+name: Singularity
+version: 'debug-build'
+main: me.mrnavastar.singularity.loader.Paper
+api-version: '1.20'
+libraries:
+  - com.esotericsoftware:kryo5:5.6.0

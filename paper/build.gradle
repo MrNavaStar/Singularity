@@ -1,0 +1,29 @@
+plugins {
+    id "io.papermc.paperweight.userdev" version "1.7.1"
+    id "xyz.jpenilla.run-paper" version "2.3.0"
+}
+
+configurations {
+    zip
+}
+
+dependencies {
+    zip implementation(project(path: ':loader-common', configuration: 'default'))
+    paperweight.paperDevBundle(project.paper_version)
+}
+
+jar {
+    from {
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+        configurations.zip.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
+
+tasks {
+    runServer {
+        minecraftVersion(project.minecraft_version)
+        downloadPlugins {
+            url("https://maven.mrnavastar.rocks/releases/me/mrnavastar/protoweaver/paper/${project.protoweaver_version}/paper-${project.protoweaver_version}-dev.jar")
+        }
+    }
+}

@@ -1,4 +1,0 @@
-dependencies {
-    compileOnly "me.mrnavastar.protoweaver:common:${project.protoweaver_version}"
-    compileOnly "com.esotericsoftware:kryo5:5.6.0"
-}
