@@ -17,7 +17,7 @@ public class Constants {
     public static final String SINGULARITY_BOOT_MESSAGE = "Warping space and time ...";
     public static final String SINGULARITY_CONNECT_MESSAGE = "Wormhole opened by: %s";
 
-    public static final Protocol.Builder PROTOCOL = Protocol.create(SINGULARITY_ID, "sync")
+    public static final Protocol.Builder PROTOCOL = Protocol.create(SINGULARITY_ID, "wormhole")
             .setServerAuthHandler(VelocityAuth.class)
             .setClientAuthHandler(VelocityAuth.class)
             .setCompression(CompressionType.GZIP)

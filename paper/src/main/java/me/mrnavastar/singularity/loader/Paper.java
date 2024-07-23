@@ -10,6 +10,7 @@ import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerLoginEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.world.WorldSaveEvent;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -29,17 +30,17 @@ public class Paper extends JavaPlugin {
 
         @EventHandler
         public void onSave(WorldSaveEvent event) {
-            server.getPlayerList().getPlayers().forEach(this::syncData);
+            server.getPlayerList().getPlayers().forEach(p -> proxy.send(createSyncPacket(p)));
         }
 
         @EventHandler
         public void onPlayerJoin(PlayerJoinEvent event) {
-            proxy.send(event.getPlayer().getUniqueId());
+            onJoin(((CraftPlayer) event.getPlayer()).getHandle());
         }
 
         @EventHandler
         public void onPlayerQuit(PlayerQuitEvent event) {
-            syncData(((CraftPlayer) event.getPlayer()).getHandle());
+            onLeave(((CraftPlayer) event.getPlayer()).getHandle());
         }
 
         @Override

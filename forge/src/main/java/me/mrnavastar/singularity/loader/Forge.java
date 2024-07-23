@@ -20,8 +20,8 @@ public class Forge extends Singularity{
         MinecraftForge.EVENT_BUS.addListener((Consumer<ServerStartingEvent>) event -> server = event.getServer());
         MinecraftForge.EVENT_BUS.addListener((Consumer<RegisterCommandsEvent>) event -> registerCommands(event.getDispatcher(), event.getBuildContext(), event.getCommandSelection()));
 
-        MinecraftForge.EVENT_BUS.addListener((Consumer<PlayerEvent.PlayerLoggedInEvent>) event -> proxy.send(event.getEntity().getUUID()));
-        MinecraftForge.EVENT_BUS.addListener((Consumer<PlayerEvent.PlayerLoggedOutEvent>) event -> syncData((ServerPlayer) event.getEntity()));
+        MinecraftForge.EVENT_BUS.addListener((Consumer<PlayerEvent.PlayerLoggedInEvent>) event -> onJoin((ServerPlayer) event.getEntity()));
+        MinecraftForge.EVENT_BUS.addListener((Consumer<PlayerEvent.PlayerLoggedOutEvent>) event -> onLeave((ServerPlayer) event.getEntity()));
     }
 
 }

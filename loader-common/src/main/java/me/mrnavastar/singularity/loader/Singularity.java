@@ -3,6 +3,7 @@ package me.mrnavastar.singularity.loader;
 import com.google.gson.JsonElement;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.BoolArgumentType;
+import lombok.Getter;
 import lombok.SneakyThrows;
 import me.mrnavastar.protoweaver.api.ProtoConnectionHandler;
 import me.mrnavastar.protoweaver.api.netty.ProtoConnection;
@@ -10,6 +11,7 @@ import me.mrnavastar.singularity.common.Constants;
 import me.mrnavastar.singularity.common.networking.Settings;
 import me.mrnavastar.singularity.common.networking.SyncData;
 import me.mrnavastar.singularity.loader.api.SyncEvents;
+import me.mrnavastar.singularity.loader.util.ReflectionUtil;
 import me.mrnavastar.singularity.loader.util.Serializers;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
@@ -23,17 +25,25 @@ import org.apache.logging.log4j.LogManager;
 
 import java.io.*;
 import java.util.HashSet;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class Singularity implements ProtoConnectionHandler {
 
     protected static final HashSet<String> nbtBlacklist = new HashSet<>();
     protected static Settings settings = new Settings();
+    @Getter
     protected static ProtoConnection proxy;
     protected static MinecraftServer server;
 
     public static boolean playerDataSavingDisabled = false;
     public static boolean advancementSavingDisabled = false;
     public static boolean statSavingDisabled = false;
+
+    protected static final ConcurrentHashMap<UUID, SyncData> incoming = new ConcurrentHashMap<>();
+    protected static final ConcurrentHashMap<UUID, CompletableFuture<SyncData>> outgoing = new ConcurrentHashMap<>();
 
     @SneakyThrows
     public Singularity() {
@@ -125,14 +135,14 @@ public class Singularity implements ProtoConnectionHandler {
         });*/
 
         // Player Stats
-        /*SyncEvents.SEND_DATA.register((player, data) -> {
+        SyncEvents.SEND_DATA.register((player, data) -> {
             if (!settings.syncPlayerStats) return;
-            data.put(Constants.PLAYER_STATS, ReflectionUtil.invokePrivateMethod(player.getStats(), "toJson", String.class));
+            data.put(Constants.PLAYER_STATS, ReflectionUtil.invokeMethod(player.getStats(), "toJson", String.class));
         });
         SyncEvents.RECEIVE_DATA.register((player, data) -> {
             if (!settings.syncPlayerStats) return;
-            player.getStats().parseLocal(getServer().getFixerUpper(), data.get(Constants.PLAYER_STATS, String.class));
-        });*/
+            player.getStats().parseLocal(server.getFixerUpper(), data.get(Constants.PLAYER_STATS, String.class));
+        });
     }
 
     // Used by paper
@@ -140,10 +150,17 @@ public class Singularity implements ProtoConnectionHandler {
         SyncEvents.RECEIVE_DATA.getInvoker().trigger(player, data);
     }
 
+    // Used by paper
     protected void processSettings(Settings settings) {
         playerDataSavingDisabled = settings.syncPlayerData;
         statSavingDisabled = settings.syncPlayerStats;
         advancementSavingDisabled = settings.syncPlayerAdvancements;
+    }
+
+    protected SyncData createSyncPacket(ServerPlayer player) {
+        SyncData data = new SyncData(player.getUUID());
+        SyncEvents.SEND_DATA.getInvoker().trigger(player, data);
+        return data;
     }
 
     @Override
@@ -154,24 +171,29 @@ public class Singularity implements ProtoConnectionHandler {
                 settings = s;
                 reloadBlacklists();
             }
-
-            // Todo: there is a race condition here that causes the player to be null sometimes
             case SyncData data -> {
                 ServerPlayer player = server.getPlayerList().getPlayer(data.getPlayer());
-                if (player == null) {
-                    log(Level.WARN, "is all veryy dead");
-                       return;
-                }
-                processData(player, data);
+                if (player != null) processData(player, data);
+                else incoming.put(data.getPlayer(), data);
+            }
+            case UUID uuid -> {
+                CompletableFuture<SyncData> future = outgoing.remove(uuid);
+                if (future != null) future.thenAccept(proxy::send);
+                else Optional.ofNullable(server.getPlayerList().getPlayer(uuid)).ifPresent(player -> proxy.send(createSyncPacket(player)));
             }
             default -> log(Level.WARN, "Ignoring unknown packet: " + packet);
         };
     }
 
-    protected void syncData(ServerPlayer player) {
-        SyncData data = new SyncData(player.getUUID());
-        SyncEvents.SEND_DATA.getInvoker().trigger(player, data);
-        proxy.send(data);
+    protected void onJoin(ServerPlayer player) {
+        SyncData data = incoming.remove(player.getUUID());
+        if (data != null) processData(player, data);
+    }
+
+    protected void onLeave(ServerPlayer player) {
+        CompletableFuture<SyncData> future = new CompletableFuture<>();
+        outgoing.put(player.getUUID(), future);
+        future.complete(createSyncPacket(player));
     }
 
     protected static void log(Level level, String message) {
