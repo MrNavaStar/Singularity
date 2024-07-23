@@ -1,0 +1,15 @@
+{
+  "required": false,
+  "minVersion": "0.8",
+  "package": "me.mrnavastar.singularity.loader.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": [
+    "PlayerAdvancementsMixin",
+    "PlayerDataStorageMixin",
+    "ServerStatsCounterMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "refmap": "loader-common-loader-common-refmap.json"
+}

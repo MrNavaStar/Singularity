@@ -1,7 +1,7 @@
 apply plugin: "dev.architectury.loom"
 
 configurations {
-    zip
+    zip.exclude group: "net.fabricmc", module: "fabric-loader"
 }
 
 dependencies {
@@ -14,7 +14,7 @@ dependencies {
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
     // Dev
-    modLocalRuntime "maven.modrinth:easy-eula:1.1.0-fabric"
+    modLocalRuntime "maven.modrinth:easy-eula:1.1.1-fabric"
     modLocalRuntime "me.mrnavastar.protoweaver:fabric:${project.protoweaver_version}"
     modLocalRuntime "maven.modrinth:fabricproxy-lite:${project.proxy_lite_version}"
     modLocalRuntime "com.moandjiezana.toml:toml4j:${project.toml4j_version}"
@@ -26,3 +26,4 @@ jar {
         configurations.zip.collect { it.isDirectory() ? it : zipTree(it) }
     }
 }
+jar.finalizedBy(remapJar)

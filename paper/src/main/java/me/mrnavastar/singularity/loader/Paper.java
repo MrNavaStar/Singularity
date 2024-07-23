@@ -1,14 +1,19 @@
 package me.mrnavastar.singularity.loader;
 
 import me.mrnavastar.singularity.common.Constants;
+import me.mrnavastar.singularity.common.networking.Settings;
 import me.mrnavastar.singularity.common.networking.SyncData;
+import me.mrnavastar.singularity.loader.api.SyncEvents;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.world.WorldSaveEvent;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.spigotmc.SpigotConfig;
 
 import java.util.logging.Logger;
 
@@ -19,7 +24,17 @@ public class Paper extends JavaPlugin {
     public static class EventListener extends Singularity implements Listener {
 
         public EventListener() {
-            setServer(MinecraftServer.getServer());
+            server = MinecraftServer.getServer();
+        }
+
+        @EventHandler
+        public void onSave(WorldSaveEvent event) {
+            server.getPlayerList().getPlayers().forEach(this::syncData);
+        }
+
+        @EventHandler
+        public void onPlayerJoin(PlayerJoinEvent event) {
+            proxy.send(event.getPlayer().getUniqueId());
         }
 
         @EventHandler
@@ -28,13 +43,18 @@ public class Paper extends JavaPlugin {
         }
 
         @Override
-        protected void preProcessData(ServerPlayer player, SyncData data) {
+        protected void processData(ServerPlayer player, SyncData data) {
             player.valid = false;
+            SyncEvents.RECEIVE_DATA.getInvoker().trigger(player, data);
+            player.valid = true;
         }
 
         @Override
-        protected void postProcessData(ServerPlayer player, SyncData data) {
-            player.valid = true;
+        protected void processSettings(Settings settings) {
+            super.processSettings(settings);
+            SpigotConfig.disablePlayerDataSaving = settings.syncPlayerData;
+            SpigotConfig.disableStatSaving = settings.syncPlayerStats;
+            SpigotConfig.disableAdvancementSaving = settings.syncPlayerAdvancements;
         }
     }
 

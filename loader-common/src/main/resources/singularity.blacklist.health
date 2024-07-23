@@ -1,0 +1,11 @@
+# https://minecraft.wiki/w/Player.dat_format
+
+Air
+Fire
+HasVisualFire
+
+DeathTime
+Health
+HurtByTimestamp
+HurtTime
+AbsorptionAmount

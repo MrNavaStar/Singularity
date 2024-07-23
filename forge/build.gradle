@@ -6,7 +6,7 @@ architectury {
 }
 
 configurations {
-    zip
+    zip.exclude group: "net.fabricmc", module: "fabric-loader"
 }
 
 dependencies {

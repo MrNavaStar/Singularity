@@ -7,23 +7,23 @@ import com.esotericsoftware.kryo.kryo5.io.Output;
 import com.esotericsoftware.kryo.kryo5.objenesis.strategy.StdInstantiatorStrategy;
 import com.esotericsoftware.kryo.kryo5.util.DefaultInstantiatorStrategy;
 import lombok.*;
+import me.mrnavastar.singularity.common.Constants;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.UUID;
 
-@AllArgsConstructor
+@Getter
 @EqualsAndHashCode
 public class SyncData {
 
     private static final Kryo kryo = new Kryo();
 
-    @Getter private UUID id;
-    @Getter private String name;
-    @Getter private Date date;
-    private final HashMap<String, byte[]> map = new HashMap<>();
+    private UUID player;
+    private HashMap<String, byte[]> data = new HashMap<>();
+
+    public SyncData(UUID player) {
+        this.player = player;
+    }
 
     static {
         kryo.setRegistrationRequired(false);
@@ -34,25 +34,27 @@ public class SyncData {
         kryo.register(type, serializer);
     }
 
-    @SneakyThrows
     public void put(String key, Object object) {
-        try (Output out = new Output(new ByteArrayOutputStream())) {
+        try (Output out = new Output(Constants.MAX_DATA_SIZE)) {
             kryo.writeObject(out, object);
-            map.put(key, out.toBytes());
+            data.put(key, out.toBytes());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
-    @SneakyThrows
     public <T> T get(String key, Class<T> type) {
-        byte [] data = map.get(key);
+        byte [] data = this.data.get(key);
         if (data == null) return null;
 
-        try (Input in = new Input(new ByteArrayInputStream(data))) {
+        try (Input in = new Input(data)) {
             return kryo.readObject(in, type);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
     public boolean remove(String key) {
-        return map.remove(key) != null;
+        return data.remove(key) != null;
     }
 }

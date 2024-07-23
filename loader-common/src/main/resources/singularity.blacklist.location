@@ -1,0 +1,12 @@
+# https://minecraft.wiki/w/Player.dat_format
+
+FallDistance
+Motion
+OnGround
+PortalCooldown
+FallFlying
+Pos
+Rotation
+LastDeathLocation
+Dimension
+enteredNetherPosition

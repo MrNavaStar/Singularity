@@ -15,16 +15,18 @@ public class Constants {
     public static final String SINGULARITY_VERSION = "debug-build";
     public static final String SINGULARITY_AUTHOR = "MrNavaStar";
     public static final String SINGULARITY_BOOT_MESSAGE = "Warping space and time ...";
+    public static final String SINGULARITY_CONNECT_MESSAGE = "Wormhole opened by: %s";
 
     public static final Protocol.Builder PROTOCOL = Protocol.create(SINGULARITY_ID, "sync")
             .setServerAuthHandler(VelocityAuth.class)
             .setClientAuthHandler(VelocityAuth.class)
             .setCompression(CompressionType.GZIP)
-            .setMaxPacketSize(16777216) // 16mb
+            .setMaxPacketSize(67108864) // 64mb
             .setMaxConnections(1)
             .addPacket(Settings.class)
             .addPacket(SyncData.class);
 
+    public static final int MAX_DATA_SIZE = 16777216; // 16mb
     public static final String PLAYER_DATA = SINGULARITY_ID + ":data";
     public static final String PLAYER_ADVANCEMENTS = SINGULARITY_ID + ":adv";
     public static final String PLAYER_STATS = SINGULARITY_ID + ":stats";

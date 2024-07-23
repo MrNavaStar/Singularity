@@ -1,0 +1,10 @@
+# https://minecraft.wiki/w/Player.dat_format
+
+Passengers
+TicksFrozen
+UUID
+RootVehicle
+ShoulderEntityLeft
+ShoulderEntityRight
+SleepTimer
+warden_spawn_tracker
