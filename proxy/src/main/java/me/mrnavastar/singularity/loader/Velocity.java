@@ -95,7 +95,7 @@ public class Velocity implements ProtoConnectionHandler {
         if (prev == null) {
             event.getResult().getServer().ifPresent(s -> {
                 if (!s.getServerInfo().getAddress().equals(server.getRemoteAddress())) return;
-                dataStore.getContainer("player", player).map(c -> c.get(SYNC_DATA, "data")).ifPresent(server::send);
+                dataStore.getContainer("player", player).flatMap(c -> c.get(SYNC_DATA, "data")).ifPresent(server::send);
             });
             return;
         }
