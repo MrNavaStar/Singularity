@@ -14,7 +14,7 @@ dependencies {
     annotationProcessor "com.velocitypowered:velocity-api:${project.velocity_version}"
     
     compileOnly "me.mrnavastar.protoweaver:proxy:${project.protoweaver_version}"
-    implementation "maven.modrinth:sqlib:3.2.0"
+    implementation "maven.modrinth:sqlib:${project.sqlib_version}"
 }
 
 shadowJar {
@@ -37,7 +37,7 @@ tasks {
         velocityVersion(project.velocity_version)
         downloadPlugins {
             url("https://maven.mrnavastar.rocks/releases/me/mrnavastar/protoweaver/proxy/${project.protoweaver_version}/proxy-${project.protoweaver_version}.jar")
-            url("https://cdn.modrinth.com/data/IM84wwxs/versions/I9hDXpqN/sqlib-3.1.4.jar")
+            url("https://cdn.modrinth.com/data/IM84wwxs/versions/M95eKwIM/sqlib-3.2.0.jar")
         }
     }
 }
