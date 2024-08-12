@@ -24,7 +24,6 @@ tasks {
         minecraftVersion(project.minecraft_version)
         downloadPlugins {
             url("https://maven.mrnavastar.rocks/releases/me/mrnavastar/protoweaver/paper/${project.protoweaver_version}/paper-${project.protoweaver_version}-dev.jar")
-            url("https://cdn.modrinth.com/data/IM84wwxs/versions/F9nHbuak/sqlib-3.0.5.jar")
         }
     }
 }

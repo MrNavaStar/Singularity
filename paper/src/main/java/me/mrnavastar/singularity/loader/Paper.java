@@ -10,7 +10,6 @@ import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerLoginEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.world.WorldSaveEvent;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -52,7 +51,6 @@ public class Paper extends JavaPlugin {
 
         @Override
         protected void processSettings(Settings settings) {
-            super.processSettings(settings);
             SpigotConfig.disablePlayerDataSaving = settings.syncPlayerData;
             SpigotConfig.disableStatSaving = settings.syncPlayerStats;
             SpigotConfig.disableAdvancementSaving = settings.syncPlayerAdvancements;

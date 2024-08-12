@@ -12,6 +12,6 @@ public class PlayerAdvancementsMixin {
 
     @Inject(method = "save", at = @At("HEAD"), cancellable = true)
     private void save(CallbackInfo ci) {
-        if (Singularity.advancementSavingDisabled) ci.cancel();
+        if (Singularity.getSettings().syncPlayerAdvancements) ci.cancel();
     }
 }

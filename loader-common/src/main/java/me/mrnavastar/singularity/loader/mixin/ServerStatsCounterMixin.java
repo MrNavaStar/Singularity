@@ -12,6 +12,6 @@ public class ServerStatsCounterMixin {
 
     @Inject(method = "save", at = @At("HEAD"), cancellable = true)
     private void save(CallbackInfo ci) {
-        if (Singularity.statSavingDisabled) ci.cancel();
+        if (Singularity.getSettings().syncPlayerStats) ci.cancel();
     }
 }

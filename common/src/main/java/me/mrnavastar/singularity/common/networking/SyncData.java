@@ -5,6 +5,7 @@ import com.esotericsoftware.kryo.kryo5.Serializer;
 import com.esotericsoftware.kryo.kryo5.io.Input;
 import com.esotericsoftware.kryo.kryo5.io.Output;
 import com.esotericsoftware.kryo.kryo5.objenesis.strategy.StdInstantiatorStrategy;
+import com.esotericsoftware.kryo.kryo5.serializers.DefaultSerializers;
 import com.esotericsoftware.kryo.kryo5.util.DefaultInstantiatorStrategy;
 import lombok.*;
 import me.mrnavastar.singularity.common.Constants;
@@ -28,10 +29,11 @@ public class SyncData {
     static {
         kryo.setRegistrationRequired(false);
         kryo.setInstantiatorStrategy(new DefaultInstantiatorStrategy(new StdInstantiatorStrategy()));
+        kryo.addDefaultSerializer(UUID.class, new DefaultSerializers.UUIDSerializer());
     }
 
     public static <T> void registerSerializer(Class<T> type, Serializer<T> serializer) {
-        kryo.register(type, serializer);
+        kryo.addDefaultSerializer(type, serializer);
     }
 
     public void put(String key, Object object) {

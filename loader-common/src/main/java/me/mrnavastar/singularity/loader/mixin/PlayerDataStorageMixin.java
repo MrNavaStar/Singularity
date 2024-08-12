@@ -12,6 +12,6 @@ public class PlayerDataStorageMixin {
 
     @Inject(method = "save", at = @At("HEAD"), cancellable = true)
     private void save(CallbackInfo ci) {
-        if (Singularity.playerDataSavingDisabled) ci.cancel();
+        if (Singularity.getSettings().syncPlayerData) ci.cancel();
     }
 }
