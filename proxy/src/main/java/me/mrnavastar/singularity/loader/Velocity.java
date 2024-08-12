@@ -8,7 +8,6 @@ import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.plugin.Dependency;
 import com.velocitypowered.api.plugin.Plugin;
 import com.velocitypowered.api.proxy.ProxyServer;
-import com.velocitypowered.api.proxy.server.RegisteredServer;
 import me.mrnavastar.protoweaver.api.ProtoConnectionHandler;
 import me.mrnavastar.protoweaver.api.netty.ProtoConnection;
 import me.mrnavastar.singularity.common.Constants;
@@ -20,9 +19,7 @@ import me.mrnavastar.sqlib.api.types.SQLibType;
 import me.mrnavastar.sqlib.impl.SQLPrimitive;
 import org.slf4j.Logger;
 
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Plugin(
@@ -37,7 +34,7 @@ import java.util.concurrent.ConcurrentHashMap;
 )
 public class Velocity implements ProtoConnectionHandler {
 
-    private static HashSet<Velocity> instances;
+    private static Set<Velocity> instances;
     private static final Gson GSON = new Gson();
     private static final SQLibType<SyncData> SYNC_DATA = new SQLibType<>(SQLPrimitive.STRING, v -> GSON.toJsonTree(v).toString(), v -> GSON.fromJson(v, SyncData.class));
     private static final DataStore dataStore = SQLib.getDatabase().dataStore(Constants.SINGULARITY_ID, "data");
@@ -55,7 +52,7 @@ public class Velocity implements ProtoConnectionHandler {
 
     public Velocity() {
         // Skip adding the first instance of this class to the set
-        if (instances == null) instances = new HashSet<>();
+        if (instances == null) instances = Collections.newSetFromMap(new ConcurrentHashMap<>());
         else instances.add(this);
     }
 
@@ -98,7 +95,6 @@ public class Velocity implements ProtoConnectionHandler {
 
     @Override
     public void onDisconnect(ProtoConnection connection) {
-        // TODO: Check if this is creates a concurrent modification exception
         instances.remove(this);
     }
 
