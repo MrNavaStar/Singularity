@@ -7,17 +7,12 @@ import com.esotericsoftware.kryo.kryo5.io.Output;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import lombok.SneakyThrows;
-import me.mrnavastar.protoweaver.api.ProtoWeaver;
-import me.mrnavastar.protoweaver.api.netty.ProtoConnection;
 import me.mrnavastar.singularity.loader.impl.IpBanListHack;
 import me.mrnavastar.singularity.loader.impl.ServerOpListHack;
 import me.mrnavastar.singularity.loader.impl.UserBanListHack;
 import me.mrnavastar.singularity.loader.impl.UserWhiteListHack;
 import net.minecraft.nbt.*;
-import net.minecraft.server.players.StoredUserEntry;
 import net.minecraft.server.players.StoredUserList;
-
-import java.util.Map;
 
 public class Serializers {
 
@@ -44,7 +39,7 @@ public class Serializers {
         public void write(Kryo kryo, Output output, StoredUserList object) {
             object.getEntries().forEach(v -> {
                 JsonObject j = new JsonObject();
-                ReflectionUtil.invokeMethod(v, "serialize", null, j);
+                R.of(v).call("serialize", j);
                 output.writeString(j.toString());
             });
         }

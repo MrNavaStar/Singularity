@@ -13,7 +13,7 @@ import me.mrnavastar.singularity.loader.impl.IpBanListHack;
 import me.mrnavastar.singularity.loader.impl.ServerOpListHack;
 import me.mrnavastar.singularity.loader.impl.UserBanListHack;
 import me.mrnavastar.singularity.loader.impl.UserWhiteListHack;
-import me.mrnavastar.singularity.loader.util.ReflectionUtil;
+import me.mrnavastar.singularity.loader.util.R;
 import me.mrnavastar.singularity.loader.util.Serializers;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.MinecraftServer;
@@ -137,7 +137,7 @@ public class Singularity implements ProtoConnectionHandler {
         // Player Stats
         SyncEvents.SEND_DATA.register((player, data) -> {
             if (!settings.syncPlayerStats) return;
-            data.put(Constants.PLAYER_STATS, ReflectionUtil.invokeMethod(player.getStats(), "toJson", String.class));
+            data.put(Constants.PLAYER_STATS, R.of(player.getStats()).call("toJson", String.class));
         });
         SyncEvents.RECEIVE_DATA.register((player, data) -> {
             if (!settings.syncPlayerStats) return;

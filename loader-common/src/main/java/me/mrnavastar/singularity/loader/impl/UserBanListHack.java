@@ -3,7 +3,7 @@ package me.mrnavastar.singularity.loader.impl;
 import com.esotericsoftware.kryo.kryo5.io.Input;
 import com.google.gson.JsonObject;
 import me.mrnavastar.singularity.loader.Singularity;
-import me.mrnavastar.singularity.loader.util.ReflectionUtil;
+import me.mrnavastar.singularity.loader.util.R;
 import me.mrnavastar.singularity.loader.util.Serializers;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.players.*;
@@ -36,7 +36,7 @@ public class UserBanListHack extends UserBanList {
     public void load() {}
 
     public static void install(MinecraftServer server, UserBanListHack hack) {
-        ReflectionUtil.setParentFieldValue(server.getPlayerList(), "bans", UserBanList.class, hack);
+        R.of(server.getPlayerList()).set("bans", hack);
     }
 
     public static void install(MinecraftServer server) {
