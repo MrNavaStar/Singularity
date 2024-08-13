@@ -5,14 +5,23 @@ import com.esotericsoftware.kryo.kryo5.Serializer;
 import com.esotericsoftware.kryo.kryo5.io.Input;
 import com.esotericsoftware.kryo.kryo5.io.Output;
 import com.google.gson.Gson;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import lombok.SneakyThrows;
+import me.mrnavastar.protoweaver.api.ProtoWeaver;
+import me.mrnavastar.protoweaver.api.netty.ProtoConnection;
+import me.mrnavastar.singularity.loader.impl.IpBanListHack;
+import me.mrnavastar.singularity.loader.impl.ServerOpListHack;
+import me.mrnavastar.singularity.loader.impl.UserBanListHack;
+import me.mrnavastar.singularity.loader.impl.UserWhiteListHack;
 import net.minecraft.nbt.*;
+import net.minecraft.server.players.StoredUserEntry;
+import net.minecraft.server.players.StoredUserList;
 
-import java.io.*;
+import java.util.Map;
 
 public class Serializers {
+
+    public static final Gson GSON = new Gson();
 
     public static class Nbt extends Serializer<CompoundTag> {
 
@@ -29,23 +38,24 @@ public class Serializers {
         }
     }
 
-    public static class Json extends Serializer<JsonElement> {
-
-        private static final Gson GSON = new Gson();
+    public static class SUL extends Serializer<StoredUserList> {
 
         @Override
-        @SneakyThrows
-        public void write(Kryo kryo, Output output, JsonElement element) {
-            System.out.println(element);
-            output.writeBytes(GSON.toJson(element).getBytes());
-
+        public void write(Kryo kryo, Output output, StoredUserList object) {
+            object.getEntries().forEach(v -> {
+                JsonObject j = new JsonObject();
+                ReflectionUtil.invokeMethod(v, "serialize", null, j);
+                output.writeString(j.toString());
+            });
         }
 
         @Override
-        @SneakyThrows
-        public JsonElement read(Kryo kryo, Input input, Class<? extends JsonElement> type) {
-            System.out.println(new String(input.readAllBytes()));
-            return new JsonObject();
+        public StoredUserList read(Kryo kryo, Input input, Class<? extends StoredUserList> type) {
+            if (type == UserWhiteListHack.class) return new UserWhiteListHack(input);
+            else if (type == ServerOpListHack.class) return new ServerOpListHack(input);
+            else if (type == UserBanListHack.class) return new UserBanListHack(input);
+            else if (type == IpBanListHack.class) return new IpBanListHack(input);
+            return null;
         }
     }
 }

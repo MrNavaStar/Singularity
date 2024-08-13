@@ -33,9 +33,9 @@ public class AdvancementHandler {
         ReflectionUtil.getFieldValue(pa, "visible", Set.class).clear();
         ReflectionUtil.getFieldValue(pa, "rootsToUpdate", Set.class).clear();
         ReflectionUtil.getFieldValue(pa, "progressChanged", Set.class).clear();
-        ReflectionUtil.setFieldValue(pa, "isFirstPacket", true);
+        /*ReflectionUtil.setFieldValue(pa, "isFirstPacket", true);
         ReflectionUtil.setFieldValue(pa, "lastSelectedTab", null);
-        ReflectionUtil.setFieldValue(pa, "tree", am.tree());
+        ReflectionUtil.setFieldValue(pa, "tree", am.tree());*/
 
         System.out.println(json);
 

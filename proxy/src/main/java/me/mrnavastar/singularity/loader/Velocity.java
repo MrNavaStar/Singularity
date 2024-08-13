@@ -11,7 +11,8 @@ import com.velocitypowered.api.proxy.ProxyServer;
 import me.mrnavastar.protoweaver.api.ProtoConnectionHandler;
 import me.mrnavastar.protoweaver.api.netty.ProtoConnection;
 import me.mrnavastar.singularity.common.Constants;
-import me.mrnavastar.singularity.common.networking.SyncData;
+import me.mrnavastar.singularity.common.networking.PlayerData;
+import me.mrnavastar.singularity.common.networking.ServerData;
 import me.mrnavastar.sqlib.SQLib;
 import me.mrnavastar.sqlib.api.DataStore;
 import me.mrnavastar.sqlib.api.types.JavaTypes;
@@ -36,14 +37,15 @@ public class Velocity implements ProtoConnectionHandler {
 
     private static Set<Velocity> instances;
     private static final Gson GSON = new Gson();
-    private static final SQLibType<SyncData> SYNC_DATA = new SQLibType<>(SQLPrimitive.STRING, v -> GSON.toJsonTree(v).toString(), v -> GSON.fromJson(v, SyncData.class));
+    private static final SQLibType<PlayerData> PLAYER_DATA = new SQLibType<>(SQLPrimitive.STRING, v -> GSON.toJsonTree(v).toString(), v -> GSON.fromJson(v, PlayerData.class));
     private static final DataStore dataStore = SQLib.getDatabase().dataStore(Constants.SINGULARITY_ID, "data");
     private static final ConcurrentHashMap<UUID, ProtoConnection> servers = new ConcurrentHashMap<>();
+    private static Logger logger;
 
     @Inject
     private ProxyServer proxy;
     @Inject
-    private Logger logger;
+    private Logger l;
     private ProtoConnection server;
 
     static {
@@ -58,6 +60,7 @@ public class Velocity implements ProtoConnectionHandler {
 
     @Subscribe
     public void onProxyInitialization(ProxyInitializeEvent event) {
+        logger = l;
         logger.info(Constants.SINGULARITY_BOOT_MESSAGE);
         SingularityConfig.load(proxy, logger);
     }
@@ -74,7 +77,7 @@ public class Velocity implements ProtoConnectionHandler {
         if (event.getPreviousServer() == null) {
             event.getResult().getServer().ifPresent(s -> {
                 if (!s.getServerInfo().getAddress().equals(server.getRemoteAddress())) return;
-                dataStore.getContainer("player", player).flatMap(c -> c.get(SYNC_DATA, "data")).ifPresent(server::send);
+                dataStore.getContainer("player", player).flatMap(c -> c.get(PLAYER_DATA, "data")).ifPresent(server::send);
             });
             return;
         }
@@ -90,7 +93,7 @@ public class Velocity implements ProtoConnectionHandler {
     @Override
     public void onReady(ProtoConnection server) {
         this.server = server;
-        SingularityConfig.getServerSettings(server.getRemoteAddress()).ifPresent(server::send);
+        SingularityConfig.getServerSettings(server).ifPresent(server::send);
     }
 
     @Override
@@ -101,9 +104,15 @@ public class Velocity implements ProtoConnectionHandler {
     @Override
     public void handlePacket(ProtoConnection server, Object packet) {
         switch (packet) {
-            case SyncData data -> {
-                Optional.ofNullable(servers.get(data.getPlayer())).ifPresent(c -> c.send(data));
-                dataStore.getOrCreateContainer("player", data.getPlayer(), container -> container.put(JavaTypes.UUID, "player", data.getPlayer())).put(SYNC_DATA, "data", data);
+            case PlayerData data -> {
+                Optional.ofNullable(servers.get(data.getPlayer())).ifPresent(c -> {
+                    if (SingularityConfig.inSameGroup(server, c)) c.send(data);
+                });
+                dataStore.getOrCreateContainer("player", data.getPlayer(), container -> container.put(JavaTypes.UUID, "player", data.getPlayer()))
+                        .put(PLAYER_DATA, "data", data);
+            }
+            case ServerData data -> {
+                logger.info("got server data");
             }
             default -> logger.warn("Ignoring unknown packet: {}", packet);
         }

@@ -2,8 +2,12 @@ package me.mrnavastar.singularity.loader;
 
 import me.mrnavastar.singularity.common.Constants;
 import me.mrnavastar.singularity.common.networking.Settings;
-import me.mrnavastar.singularity.common.networking.SyncData;
+import me.mrnavastar.singularity.common.networking.ServerData;
 import me.mrnavastar.singularity.loader.api.SyncEvents;
+import me.mrnavastar.singularity.loader.impl.IpBanListHack;
+import me.mrnavastar.singularity.loader.impl.ServerOpListHack;
+import me.mrnavastar.singularity.loader.impl.UserBanListHack;
+import me.mrnavastar.singularity.loader.impl.UserWhiteListHack;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
@@ -29,7 +33,7 @@ public class Paper extends JavaPlugin {
 
         @EventHandler
         public void onSave(WorldSaveEvent event) {
-            server.getPlayerList().getPlayers().forEach(p -> proxy.send(createSyncPacket(p)));
+            server.getPlayerList().getPlayers().forEach(p -> proxy.send(createPlayerDataPacket(p)));
         }
 
         @EventHandler
@@ -43,7 +47,7 @@ public class Paper extends JavaPlugin {
         }
 
         @Override
-        protected void processData(ServerPlayer player, SyncData data) {
+        protected void processData(ServerPlayer player, ServerData data) {
             player.valid = false;
             SyncEvents.RECEIVE_DATA.getInvoker().trigger(player, data);
             player.valid = true;
@@ -62,5 +66,10 @@ public class Paper extends JavaPlugin {
         logger.info(Constants.SINGULARITY_BOOT_MESSAGE);
         Constants.PROTOCOL.setServerHandler(EventListener.class).load();
         getServer().getPluginManager().registerEvents(new EventListener(), this);
+
+        UserWhiteListHack.install(MinecraftServer.getServer());
+        ServerOpListHack.install(MinecraftServer.getServer());
+        UserBanListHack.install(MinecraftServer.getServer());
+        IpBanListHack.install(MinecraftServer.getServer());
     }
 }

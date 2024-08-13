@@ -1,7 +1,7 @@
 package me.mrnavastar.singularity.loader.api;
 
 import me.mrnavastar.protoweaver.api.util.Event;
-import me.mrnavastar.singularity.common.networking.SyncData;
+import me.mrnavastar.singularity.common.networking.ServerData;
 import net.minecraft.server.level.ServerPlayer;
 
 public class SyncEvents {
@@ -16,6 +16,6 @@ public class SyncEvents {
 
     @FunctionalInterface
     public interface PlayerData {
-        void trigger(ServerPlayer player, SyncData data);
+        void trigger(ServerPlayer player, ServerData data);
     }
 }

@@ -1,6 +1,7 @@
 package me.mrnavastar.singularity.loader;
 
 import com.velocitypowered.api.proxy.ProxyServer;
+import me.mrnavastar.protoweaver.api.netty.ProtoConnection;
 import me.mrnavastar.singularity.common.networking.Settings;
 import org.slf4j.Logger;
 import org.yaml.snakeyaml.Yaml;
@@ -13,6 +14,7 @@ import java.util.*;
 
 public class SingularityConfig {
 
+    private static final HashMap<InetSocketAddress, String> groups = new HashMap<>();
     private static final HashMap<InetSocketAddress, Settings> settings = new HashMap<>();
     private static final ArrayList<String> blacklists = new ArrayList<>();
 
@@ -28,8 +30,12 @@ public class SingularityConfig {
         registerBlacklist("singularity.xp");
     }
 
-    public static Optional<Settings> getServerSettings(InetSocketAddress server) {
-        return Optional.ofNullable(settings.get(server));
+    public static Optional<Settings> getServerSettings(ProtoConnection server) {
+        return Optional.ofNullable(settings.get(server.getRemoteAddress()));
+    }
+
+    public static boolean inSameGroup(ProtoConnection server1, ProtoConnection server2) {
+        return Objects.equals(groups.get(server1.getRemoteAddress()), groups.get(server2.getRemoteAddress()));
     }
 
     public static void registerBlacklist(String name) {
@@ -64,7 +70,10 @@ public class SingularityConfig {
                         proxy.getAllServers().stream()
                                 .filter(server -> List.of(servers.split("\n")).contains(server.getServerInfo().getName()))
                                 .map(server -> server.getServerInfo().getAddress()).toList()
-                                .forEach(a -> settings.put(a, groupSettings));
+                                .forEach(a -> {
+                                    settings.put(a, groupSettings);
+                                    groups.put(a, groupName);
+                                });
 
                     });
                 });

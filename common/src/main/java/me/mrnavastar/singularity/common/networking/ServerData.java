@@ -15,16 +15,10 @@ import java.util.UUID;
 
 @Getter
 @EqualsAndHashCode
-public class SyncData {
+public class ServerData {
 
     private static final Kryo kryo = new Kryo();
-
-    private UUID player;
     private HashMap<String, byte[]> data = new HashMap<>();
-
-    public SyncData(UUID player) {
-        this.player = player;
-    }
 
     static {
         kryo.setRegistrationRequired(false);
@@ -36,13 +30,14 @@ public class SyncData {
         kryo.addDefaultSerializer(type, serializer);
     }
 
-    public void put(String key, Object object) {
+    public ServerData put(String key, Object object) {
         try (Output out = new Output(Constants.MAX_DATA_SIZE)) {
             kryo.writeObject(out, object);
             data.put(key, out.toBytes());
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+        return this;
     }
 
     public <T> T get(String key, Class<T> type) {
