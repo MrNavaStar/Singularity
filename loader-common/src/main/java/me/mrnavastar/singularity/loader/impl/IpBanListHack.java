@@ -35,7 +35,11 @@ public class IpBanListHack extends IpBanList {
     @Override
     public void load() {}
 
+    public static void install(MinecraftServer server, IpBanListHack hack) {
+        ReflectionUtil.setParentFieldValue(server.getPlayerList(), "ipBans", IpBanList.class, hack);
+    }
+
     public static void install(MinecraftServer server) {
-        ReflectionUtil.setParentFieldValue(server.getPlayerList(), "ipBans", IpBanList.class, new IpBanListHack());
+        install(server, new IpBanListHack());
     }
 }

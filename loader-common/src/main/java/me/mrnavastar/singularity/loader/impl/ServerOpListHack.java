@@ -35,7 +35,11 @@ public class ServerOpListHack extends ServerOpList {
     @Override
     public void load() {}
 
+    public static void install(MinecraftServer server, ServerOpListHack hack) {
+        ReflectionUtil.setParentFieldValue(server.getPlayerList(), "ops", ServerOpList.class, hack);
+    }
+
     public static void install(MinecraftServer server) {
-        ReflectionUtil.setParentFieldValue(server.getPlayerList(), "ops", ServerOpList.class, new ServerOpListHack());
+        install(server, new ServerOpListHack());
     }
 }

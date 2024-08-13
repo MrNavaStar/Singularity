@@ -1,5 +1,6 @@
 package me.mrnavastar.singularity.loader;
 
+import com.destroystokyo.paper.event.server.WhitelistToggleEvent;
 import me.mrnavastar.singularity.common.Constants;
 import me.mrnavastar.singularity.common.networking.Settings;
 import me.mrnavastar.singularity.common.networking.ServerData;
@@ -34,6 +35,11 @@ public class Paper extends JavaPlugin {
         @EventHandler
         public void onSave(WorldSaveEvent event) {
             server.getPlayerList().getPlayers().forEach(p -> proxy.send(createPlayerDataPacket(p)));
+        }
+
+        @EventHandler
+        public void onToggle(WhitelistToggleEvent event) {
+            syncServerData();
         }
 
         @EventHandler

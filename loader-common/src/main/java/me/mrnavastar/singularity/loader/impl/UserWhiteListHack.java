@@ -35,7 +35,11 @@ public class UserWhiteListHack extends UserWhiteList {
     @Override
     public void load() {}
 
+    public static void install(MinecraftServer server, UserWhiteListHack hack) {
+        ReflectionUtil.setParentFieldValue(server.getPlayerList(), "whitelist", UserWhiteList.class, hack);
+    }
+
     public static void install(MinecraftServer server) {
-        ReflectionUtil.setParentFieldValue(server.getPlayerList(), "whitelist", UserWhiteList.class, new UserWhiteListHack());
+        install(server, new UserWhiteListHack());
     }
 }

@@ -35,7 +35,11 @@ public class UserBanListHack extends UserBanList {
     @Override
     public void load() {}
 
+    public static void install(MinecraftServer server, UserBanListHack hack) {
+        ReflectionUtil.setParentFieldValue(server.getPlayerList(), "bans", UserBanList.class, hack);
+    }
+
     public static void install(MinecraftServer server) {
-        ReflectionUtil.setParentFieldValue(server.getPlayerList(), "bans", UserBanList.class, new UserBanListHack());
+        install(server, new UserBanListHack());
     }
 }

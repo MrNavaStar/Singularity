@@ -9,7 +9,10 @@ import me.mrnavastar.singularity.common.networking.PlayerData;
 import me.mrnavastar.singularity.common.networking.Settings;
 import me.mrnavastar.singularity.common.networking.ServerData;
 import me.mrnavastar.singularity.loader.api.SyncEvents;
+import me.mrnavastar.singularity.loader.impl.IpBanListHack;
 import me.mrnavastar.singularity.loader.impl.ServerOpListHack;
+import me.mrnavastar.singularity.loader.impl.UserBanListHack;
+import me.mrnavastar.singularity.loader.impl.UserWhiteListHack;
 import me.mrnavastar.singularity.loader.util.ReflectionUtil;
 import me.mrnavastar.singularity.loader.util.Serializers;
 import net.minecraft.nbt.CompoundTag;
@@ -157,13 +160,13 @@ public class Singularity implements ProtoConnectionHandler {
             }
             case ServerData data -> {
                 server.getPlayerList().setUsingWhiteList(data.get(Constants.WHITELIST_ENABLED, boolean.class));
-                ReflectionUtil.setFieldValue(server.getPlayerList(), "whitelist", UserWhiteList.class, data.get(Constants.WHITELIST, UserWhiteList.class));
+                UserWhiteListHack.install(server, data.get(Constants.WHITELIST, UserWhiteListHack.class));
 
-                ReflectionUtil.setFieldValue(server.getPlayerList(), "ops", ServerOpList.class, data.get(Constants.OPERATORS, ServerOpListHack.class));
+                ServerOpListHack.install(server, data.get(Constants.OPERATORS, ServerOpListHack.class));
                 server.getPlayerList().getPlayers().forEach(p -> server.getPlayerList().sendPlayerPermissionLevel(p));
 
-                ReflectionUtil.setFieldValue(server.getPlayerList(), "bans", UserBanList.class, data.get(Constants.BANNED_PLAYERS, UserBanList.class));
-                ReflectionUtil.setFieldValue(server.getPlayerList(), "ipBans", IpBanList.class, data.get(Constants.BANNED_IPS, IpBanList.class));
+                UserBanListHack.install(server, data.get(Constants.BANNED_PLAYERS, UserBanListHack.class));
+                IpBanListHack.install(server, data.get(Constants.BANNED_IPS, IpBanListHack.class));
             }
             default -> log(Level.WARN, "Ignoring unknown packet: " + packet);
         };
