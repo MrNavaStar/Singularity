@@ -80,7 +80,7 @@ public class Singularity implements ProtoConnectionHandler {
         });
     }
 
-    protected PlayerData createPlayerDataPacket(ServerPlayer player) {
+    protected static PlayerData createPlayerDataPacket(ServerPlayer player) {
         PlayerData data = new PlayerData(player.getUUID());
         SyncEvents.SEND_DATA.getInvoker().trigger(player, data);
         return data;
@@ -93,6 +93,10 @@ public class Singularity implements ProtoConnectionHandler {
             .put(Constants.WHITELIST, server.getPlayerList().getWhiteList())
             .put(Constants.BANNED_PLAYERS, server.getPlayerList().getBans())
             .put(Constants.BANNED_IPS, server.getPlayerList().getIpBans()));
+    }
+
+    public static void syncPlayerData() {
+        if (proxy != null) server.getPlayerList().getPlayers().forEach(player -> proxy.send(createPlayerDataPacket(player)));
     }
 
     public void onReady(ProtoConnection protoConnection) {

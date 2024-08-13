@@ -14,4 +14,9 @@ public class PlayerListMixin {
     private void toggle(boolean bl, CallbackInfo ci) {
         Singularity.syncServerData();
     }
+
+    @Inject(method = "saveAll", at = @At("HEAD"))
+    private void save(CallbackInfo ci) {
+        Singularity.syncPlayerData();
+    }
 }

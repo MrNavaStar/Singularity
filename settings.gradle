@@ -8,4 +8,4 @@ pluginManagement {
 }
 
 rootProject.name = 'singularity'
-include ':common', 'loader-common', ':fabric', ':paper', ':proxy'
+include ':common', 'loader-common', ':fabric', ':forge', ':paper', ':proxy'

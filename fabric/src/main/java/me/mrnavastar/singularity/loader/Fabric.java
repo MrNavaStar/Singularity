@@ -12,9 +12,12 @@ import org.apache.logging.log4j.Level;
 
 public class Fabric extends Singularity implements DedicatedServerModInitializer {
 
+    public Fabric() {
+        log(Level.INFO, Constants.SINGULARITY_BOOT_MESSAGE);
+    }
+
     @Override
     public void onInitializeServer() {
-        log(Level.INFO, Constants.SINGULARITY_BOOT_MESSAGE);
         Constants.PROTOCOL.setServerHandler(Fabric.class).load();
 
         ServerLifecycleEvents.SERVER_STARTING.register(s -> server = s);
@@ -22,12 +25,8 @@ public class Fabric extends Singularity implements DedicatedServerModInitializer
         ServerLifecycleEvents.SERVER_STARTED.register(ServerOpListHack::install);
         ServerLifecycleEvents.SERVER_STARTED.register(UserBanListHack::install);
         ServerLifecycleEvents.SERVER_STARTED.register(IpBanListHack::install);
-        //ServerLifecycleEvents.BEFORE_SAVE.register((server, flush, force) -> server.getPlayerList().getPlayers().forEach(this::syncData));
-        //CommandRegistrationCallback.EVENT.register(Singularity::registerCommands);
 
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server1) -> onJoin(handler.getPlayer()));
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server1) -> onLeave(handler.getPlayer()));
-
-
     }
 }

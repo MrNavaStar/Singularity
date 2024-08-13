@@ -34,7 +34,7 @@ public class Paper extends JavaPlugin {
 
         @EventHandler
         public void onSave(WorldSaveEvent event) {
-            server.getPlayerList().getPlayers().forEach(p -> proxy.send(createPlayerDataPacket(p)));
+            syncPlayerData();
         }
 
         @EventHandler
