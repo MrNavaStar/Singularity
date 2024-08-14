@@ -2,8 +2,8 @@ package me.mrnavastar.singularity.loader.impl;
 
 import com.esotericsoftware.kryo.kryo5.io.Input;
 import com.google.gson.JsonObject;
+import me.mrnavastar.r.R;
 import me.mrnavastar.singularity.loader.Singularity;
-import me.mrnavastar.singularity.loader.util.R;
 import me.mrnavastar.singularity.loader.util.Serializers;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.players.*;

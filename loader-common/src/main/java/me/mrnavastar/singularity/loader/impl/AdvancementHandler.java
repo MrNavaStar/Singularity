@@ -3,8 +3,7 @@ package me.mrnavastar.singularity.loader.impl;
 import com.google.gson.JsonParser;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.JsonOps;
-import me.mrnavastar.singularity.loader.util.R;
-import net.minecraft.server.PlayerAdvancements;
+import me.mrnavastar.r.R;
 import net.minecraft.server.ServerAdvancementManager;
 import net.minecraft.server.level.ServerPlayer;
 
@@ -40,8 +39,8 @@ public class AdvancementHandler {
 
         // Mimic the official load function
         Object data = codec.parse(JsonOps.INSTANCE, JsonParser.parseString(json)).getOrThrow();
-        R.invokeMethod(pa, "applyFrom", void.class, am, data);
-        R.invokeMethod(pa, "checkForAutomaticTriggers", void.class, am);
-        R.invokeMethod(pa, "registerListeners", void.class, am);
+        advancements.call("applyFrom", void.class, manager, data);
+        advancements.call("checkForAutomaticTriggers", void.class, manager);
+        advancements.call("registerListeners", void.class, manager);
     }
 }

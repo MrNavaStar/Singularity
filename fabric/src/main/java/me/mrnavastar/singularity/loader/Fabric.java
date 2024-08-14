@@ -8,6 +8,7 @@ import me.mrnavastar.singularity.loader.impl.UserWhiteListHack;
 import net.fabricmc.api.DedicatedServerModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.fabricmc.loader.api.FabricLoader;
 import org.apache.logging.log4j.Level;
 
 public class Fabric extends Singularity implements DedicatedServerModInitializer {
