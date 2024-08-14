@@ -126,7 +126,7 @@ public class Singularity implements ProtoConnectionHandler {
         }));
 
         // Player Advancements
-        /*SyncEvents.SEND_DATA.register((player, data) -> {
+        SyncEvents.SEND_DATA.register((player, data) -> {
             if (!settings.syncPlayerAdvancements) return;
             data.put(Constants.PLAYER_ADVANCEMENTS, AdvancementHandler.save(player));
         });
@@ -136,7 +136,7 @@ public class Singularity implements ProtoConnectionHandler {
             System.out.println(data.get(Constants.PLAYER_ADVANCEMENTS, String.class));
 
             AdvancementHandler.load(player, data.get(Constants.PLAYER_ADVANCEMENTS, String.class));
-        });*/
+        });
 
         // Player Stats
         SyncEvents.SEND_DATA.register((player, data) -> {
@@ -146,6 +146,7 @@ public class Singularity implements ProtoConnectionHandler {
         SyncEvents.RECEIVE_DATA.register((player, data) -> {
             if (!settings.syncPlayerStats) return;
             player.getStats().parseLocal(server.getFixerUpper(), data.get(Constants.PLAYER_STATS, String.class));
+            player.getStats().sendStats(player);
         });
     }
 

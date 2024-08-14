@@ -9,18 +9,21 @@ configurations {
     zip.exclude group: "net.fabricmc", module: "fabric-loader"
 }
 
+configurations.configureEach {
+    resolutionStrategy.force("net.sf.jopt-simple:jopt-simple:5.0.4")
+}
+
 dependencies {
     zip implementation(project(path: ":loader-common", configuration: "default"))
 
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
-    //mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
     mappings loom.officialMojangMappings()
     forge "net.minecraftforge:forge:${project.forge_version}"
 
     //Dev
-    //modLocalRuntime "maven.modrinth:easy-eula:1.1.0-forge"
-    //modLocalRuntime "maven.modrinth:proxy-compatible-forge:${project.proxy_forge_version}"
-    //modLocalRuntime "me.mrnavastar.protoweaver:forge:${project.protoweaver_version}"
+    modLocalRuntime "maven.modrinth:easy-eula:1.1.1-forge"
+    modLocalRuntime "maven.modrinth:proxy-compatible-forge:${project.proxy_forge_version}"
+    modLocalRuntime "me.mrnavastar.protoweaver:forge:${project.protoweaver_version}"
 }
 
 jar {

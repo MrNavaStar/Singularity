@@ -10,6 +10,9 @@ import com.velocitypowered.api.plugin.Plugin;
 import com.velocitypowered.api.proxy.ProxyServer;
 import me.mrnavastar.protoweaver.api.ProtoConnectionHandler;
 import me.mrnavastar.protoweaver.api.netty.ProtoConnection;
+import me.mrnavastar.protoweaver.api.protocol.Protocol;
+import me.mrnavastar.protoweaver.proxy.api.ProtoProxy;
+import me.mrnavastar.protoweaver.proxy.api.ProtoServer;
 import me.mrnavastar.singularity.common.Constants;
 import me.mrnavastar.singularity.common.networking.PlayerData;
 import me.mrnavastar.singularity.common.networking.ServerData;
@@ -35,28 +38,18 @@ import java.util.concurrent.ConcurrentHashMap;
 )
 public class Velocity implements ProtoConnectionHandler {
 
-    private static Set<Velocity> instances;
     private static final Gson GSON = new Gson();
-    private static final SQLibType<PlayerData> PLAYER_DATA = new SQLibType<>(SQLPrimitive.STRING, v -> GSON.toJsonTree(v).toString(), v -> GSON.fromJson(v, PlayerData.class));
     private static final DataStore dataStore = SQLib.getDatabase().dataStore(Constants.SINGULARITY_ID, "data");
-    private static final ConcurrentHashMap<UUID, ProtoConnection> servers = new ConcurrentHashMap<>();
+    private static final DataStore userCache = SQLib.getDatabase().dataStore(Constants.SINGULARITY_ID, "users");
+    private static final SQLibType<PlayerData> PLAYER_DATA = new SQLibType<>(SQLPrimitive.STRING, v -> GSON.toJsonTree(v).toString(), v -> GSON.fromJson(v, PlayerData.class));
+    private static final ConcurrentHashMap<UUID, ProtoServer> servers = new ConcurrentHashMap<>();
+    private static final Protocol PROTOCOL = Constants.PROTOCOL.setClientHandler(Velocity.class).load();
     private static Logger logger;
 
     @Inject
     private ProxyServer proxy;
     @Inject
     private Logger l;
-    private ProtoConnection server;
-
-    static {
-        Constants.PROTOCOL.setClientHandler(Velocity.class).load();
-    }
-
-    public Velocity() {
-        // Skip adding the first instance of this class to the set
-        if (instances == null) instances = Collections.newSetFromMap(new ConcurrentHashMap<>());
-        else instances.add(this);
-    }
 
     @Subscribe
     public void onProxyInitialization(ProxyInitializeEvent event) {
@@ -67,47 +60,27 @@ public class Velocity implements ProtoConnectionHandler {
 
     @Subscribe
     public void onServerPreConnect(ServerPreConnectEvent event) {
-        if (server == null) {
-            instances.forEach(i -> i.onServerPreConnect(event));
-            return;
-        }
-
         UUID player = event.getPlayer().getUniqueId();
-        // First server connected to
-        if (event.getPreviousServer() == null) {
-            event.getResult().getServer().ifPresent(s -> {
-                if (!s.getServerInfo().getAddress().equals(server.getRemoteAddress())) return;
-                dataStore.getContainer("player", player).flatMap(c -> c.get(PLAYER_DATA, "data")).ifPresent(server::send);
-            });
-            return;
-        }
-
-        // Grab reference to server the player will be on
-        event.getResult().getServer().ifPresent(s -> {
-            if (!s.getServerInfo().getAddress().equals(server.getRemoteAddress())) return;
-            servers.put(player, server);
-            System.out.println("Got ref to: " + servers.get(player).getRemoteAddress());
+        event.getResult().getServer().flatMap(current -> ProtoProxy.getConnectedServer(PROTOCOL, current.getServerInfo().getName())).ifPresent(server -> {
+            if (event.getPreviousServer() == null) dataStore.getContainer("player", player)
+                    .flatMap(c -> c.get(PLAYER_DATA, "data"))
+                    .ifPresent(data -> server.getConnection().send(data));
+            else servers.put(player, server);
         });
     }
 
     @Override
-    public void onReady(ProtoConnection server) {
-        this.server = server;
-        SingularityConfig.getServerSettings(server).ifPresent(server::send);
+    public void onReady(ProtoConnection connection) {
+       ProtoProxy.getConnectedServer(PROTOCOL, connection.getRemoteAddress()).flatMap(SingularityConfig::getServerSettings).ifPresent(connection::send);
     }
 
     @Override
-    public void onDisconnect(ProtoConnection connection) {
-        instances.remove(this);
-    }
-
-    @Override
-    public void handlePacket(ProtoConnection server, Object packet) {
+    public void handlePacket(ProtoConnection connection, Object packet) {
         switch (packet) {
             case PlayerData data -> {
-                Optional.ofNullable(servers.get(data.getPlayer())).ifPresent(c -> {
-                    if (SingularityConfig.inSameGroup(server, c)) c.send(data);
-                });
+                Optional.ofNullable(servers.get(data.getPlayer())).ifPresent(oldServer -> ProtoProxy.getConnectedServer(PROTOCOL, connection.getRemoteAddress()).ifPresent(server -> {
+                    if (SingularityConfig.inSameGroup(server, oldServer)) oldServer.getConnection().send(data);
+                }));
                 dataStore.getOrCreateContainer("player", data.getPlayer(), container -> container.put(JavaTypes.UUID, "player", data.getPlayer()))
                         .put(PLAYER_DATA, "data", data);
             }

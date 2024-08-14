@@ -1,7 +1,8 @@
 package me.mrnavastar.singularity.loader;
 
 import com.velocitypowered.api.proxy.ProxyServer;
-import me.mrnavastar.protoweaver.api.netty.ProtoConnection;
+import me.mrnavastar.protoweaver.proxy.api.ProtoProxy;
+import me.mrnavastar.protoweaver.proxy.api.ProtoServer;
 import me.mrnavastar.singularity.common.networking.Settings;
 import org.slf4j.Logger;
 import org.yaml.snakeyaml.Yaml;
@@ -9,13 +10,12 @@ import org.yaml.snakeyaml.Yaml;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.net.InetSocketAddress;
 import java.util.*;
 
 public class SingularityConfig {
 
-    private static final HashMap<InetSocketAddress, String> groups = new HashMap<>();
-    private static final HashMap<InetSocketAddress, Settings> settings = new HashMap<>();
+    private static final HashMap<ProtoServer, String> groups = new HashMap<>();
+    private static final HashMap<ProtoServer, Settings> settings = new HashMap<>();
     private static final ArrayList<String> blacklists = new ArrayList<>();
 
     static {
@@ -30,12 +30,12 @@ public class SingularityConfig {
         registerBlacklist("singularity.xp");
     }
 
-    public static Optional<Settings> getServerSettings(ProtoConnection server) {
-        return Optional.ofNullable(settings.get(server.getRemoteAddress()));
+    public static Optional<Settings> getServerSettings(ProtoServer server) {
+        return Optional.ofNullable(settings.get(server));
     }
 
-    public static boolean inSameGroup(ProtoConnection server1, ProtoConnection server2) {
-        return Objects.equals(groups.get(server1.getRemoteAddress()), groups.get(server2.getRemoteAddress()));
+    public static boolean inSameGroup(ProtoServer server1, ProtoServer server2) {
+        return Objects.equals(groups.get(server1), groups.get(server2));
     }
 
     public static void registerBlacklist(String name) {
@@ -67,14 +67,12 @@ public class SingularityConfig {
                         if (s.get("singularity.stats") instanceof Boolean enabled) groupSettings.syncPlayerStats = enabled;
                         if (s.get("singularity.advancements") instanceof Boolean enabled) groupSettings.syncPlayerAdvancements = enabled;
 
-                        proxy.getAllServers().stream()
-                                .filter(server -> List.of(servers.split("\n")).contains(server.getServerInfo().getName()))
-                                .map(server -> server.getServerInfo().getAddress()).toList()
+                        ProtoProxy.getRegisteredServers().stream()
+                                .filter(server -> List.of(servers.split("\n")).contains(server.getName()))
                                 .forEach(a -> {
                                     settings.put(a, groupSettings);
                                     groups.put(a, groupName);
                                 });
-
                     });
                 });
             });
@@ -82,7 +80,7 @@ public class SingularityConfig {
             logger.info("No config found, loading defaults");
             new File("plugins/singularity");
 
-            proxy.getAllServers().forEach(s -> settings.put(s.getServerInfo().getAddress(), new Settings().setDefault()));
+            ProtoProxy.getRegisteredServers().forEach(s -> settings.put(s, new Settings().setDefault()));
         }
     }
 }

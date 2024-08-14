@@ -5,7 +5,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 
-// Reflection Wrapper class
 public class R {
 
     private final Object instance;
@@ -46,7 +45,7 @@ public class R {
         return method;
     }
 
-    private <T> T get(String name, Class<T> type) {
+    public <T> T get(String name, Class<T> type) {
         try {
             return type.cast(findField(instance.getClass(), name).get(instance));
         } catch (IllegalAccessException | NoSuchFieldException e) {
@@ -54,7 +53,6 @@ public class R {
         }
     }
 
-    // Can set private and final fields
     public void set(String name, Object value) {
         try {
             findField(instance.getClass(), name).set(instance, value);

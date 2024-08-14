@@ -13,28 +13,28 @@ import java.util.Set;
 
 public class AdvancementHandler {
 
-    /*public static String save(ServerPlayer player) {
-        PlayerAdvancements pa = player.getAdvancements();
-        Codec codec = R.getFieldValue(pa, "codec", Codec.class);
-        Object data = R.invokeMethod(pa, "asData", Object.class);
+    public static String save(ServerPlayer player) {
+        R advancements = R.of(player.getAdvancements());
+        Codec codec = advancements.call("codec", Codec.class);
+        Object data = advancements.call("asData", Object.class);
         return codec.encodeStart(JsonOps.INSTANCE, data).getOrThrow().toString();
     }
 
     public static void load(ServerPlayer player, String json) {
-        PlayerAdvancements pa = player.getAdvancements();
-        ServerAdvancementManager am = player.getServer().getAdvancements();
-        Codec codec = R.getFieldValue(pa, "codec", Codec.class);
+        R advancements = R.of(player.getAdvancements());
+        ServerAdvancementManager manager = player.getServer().getAdvancements();
+        Codec codec = advancements.get("codec", Codec.class);
 
         // Mimic the official reload function
         // We don't need to re update the advancement tree as there won't be any new advancements added
-        pa.stopListening();
-        R.getFieldValue(pa, "progress", Map.class).clear();
-        R.getFieldValue(pa, "visible", Set.class).clear();
-        R.getFieldValue(pa, "rootsToUpdate", Set.class).clear();
-        R.getFieldValue(pa, "progressChanged", Set.class).clear();
-        *//*ReflectionUtil.setFieldValue(pa, "isFirstPacket", true);
-        ReflectionUtil.setFieldValue(pa, "lastSelectedTab", null);
-        ReflectionUtil.setFieldValue(pa, "tree", am.tree());*//*
+        player.getAdvancements().stopListening();
+        advancements.get("progress", Map.class).clear();
+        advancements.get("visible", Set.class).clear();
+        advancements.get("rootsToUpdate", Set.class).clear();
+        advancements.get("progressChanged", Set.class).clear();
+        advancements.set("isFirstPacket", true);
+        advancements.set("lastSelectedTab", null);
+        advancements.set("tree", manager.tree());
 
         System.out.println(json);
 
@@ -43,5 +43,5 @@ public class AdvancementHandler {
         R.invokeMethod(pa, "applyFrom", void.class, am, data);
         R.invokeMethod(pa, "checkForAutomaticTriggers", void.class, am);
         R.invokeMethod(pa, "registerListeners", void.class, am);
-    }*/
+    }
 }
