@@ -7,7 +7,7 @@ dependencies {
     mappings loom.officialMojangMappings()
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 
-    implementation "me.mrnavastar:r:1.0.0"
+    implementation "me.mrnavastar:r:1.0.5"
 }
 
 remapJar {
