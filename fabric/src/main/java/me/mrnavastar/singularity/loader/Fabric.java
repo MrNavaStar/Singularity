@@ -5,6 +5,7 @@ import me.mrnavastar.singularity.loader.impl.IpBanListHack;
 import me.mrnavastar.singularity.loader.impl.ServerOpListHack;
 import me.mrnavastar.singularity.loader.impl.UserBanListHack;
 import me.mrnavastar.singularity.loader.impl.UserWhiteListHack;
+import me.mrnavastar.singularity.loader.util.Mappings;
 import net.fabricmc.api.DedicatedServerModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -13,13 +14,14 @@ import org.apache.logging.log4j.Level;
 
 public class Fabric extends Singularity implements DedicatedServerModInitializer {
 
-    public Fabric() {
-        log(Level.INFO, Constants.SINGULARITY_BOOT_MESSAGE);
+    static {
+        Mappings.setDev(FabricLoader.getInstance().isDevelopmentEnvironment());
+        Constants.PROTOCOL.setServerHandler(Fabric.class).load();
     }
 
     @Override
     public void onInitializeServer() {
-        Constants.PROTOCOL.setServerHandler(Fabric.class).load();
+        log(Level.INFO, Constants.SINGULARITY_BOOT_MESSAGE);
 
         ServerLifecycleEvents.SERVER_STARTING.register(s -> server = s);
         ServerLifecycleEvents.SERVER_STARTED.register(UserWhiteListHack::install);

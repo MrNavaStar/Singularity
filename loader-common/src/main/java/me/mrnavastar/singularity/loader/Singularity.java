@@ -11,16 +11,15 @@ import me.mrnavastar.singularity.common.networking.Settings;
 import me.mrnavastar.singularity.common.networking.ServerData;
 import me.mrnavastar.singularity.loader.api.SyncEvents;
 import me.mrnavastar.singularity.loader.impl.*;
-import me.mrnavastar.singularity.loader.util.Serializers;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.*;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.server.players.*;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 
 import java.io.*;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -37,8 +36,26 @@ public class Singularity implements ProtoConnectionHandler {
     @SneakyThrows
     public Singularity() {
         reloadBlacklists();
-        ServerData.registerSerializer(CompoundTag.class, new Serializers.Nbt());
-        ServerData.registerSerializer(StoredUserList.class, new Serializers.SUL());
+        ServerData.register(ServerOpListHack.class);
+        ServerData.register(UserWhiteListHack.class);
+        ServerData.register(UserBanListHack.class);
+        ServerData.register(IpBanListHack.class);
+        // Register NBT Types
+        ServerData.register(ByteArrayTag.class);
+        ServerData.register(ByteTag.class);
+        ServerData.register(CollectionTag.class);
+        ServerData.register(CompoundTag.class);
+        ServerData.register(DoubleTag.class);
+        ServerData.register(EndTag.class);
+        ServerData.register(FloatTag.class);
+        ServerData.register(IntArrayTag.class);
+        ServerData.register(IntTag.class);
+        ServerData.register(ListTag.class);
+        ServerData.register(LongArrayTag.class);
+        ServerData.register(LongTag.class);
+        ServerData.register(NumericTag.class);
+        ServerData.register(ShortTag.class);
+        ServerData.register(StringTag.class);
     }
 
     protected void onJoin(ServerPlayer player) {
@@ -110,20 +127,19 @@ public class Singularity implements ProtoConnectionHandler {
 
         SyncEvents.RECEIVE_DATA.register(((player, data) -> {
             if (!settings.syncPlayerData) return;
-            CompoundTag playerData = data.get(Constants.PLAYER_DATA, CompoundTag.class);
-            if (playerData == null) return;
-
-            CompoundTag current = new CompoundTag();
-            player.saveWithoutId(current);
-            nbtBlacklist.forEach(key -> {
-                if (!current.contains(key)) return;
-                playerData.put(key, current.get(key));
+            data.get(Constants.PLAYER_DATA, CompoundTag.class).ifPresent(nbt -> {
+                CompoundTag current = new CompoundTag();
+                player.saveWithoutId(current);
+                nbtBlacklist.forEach(key -> {
+                    if (!current.contains(key)) return;
+                    Optional.ofNullable(current.get(key)).ifPresent(tag -> nbt.put(key, tag));
+                });
+                player.load(nbt);
             });
-            player.load(playerData);
         }));
 
         // Player Advancements
-        SyncEvents.SEND_DATA.register((player, data) -> {
+        /*SyncEvents.SEND_DATA.register((player, data) -> {
             if (!settings.syncPlayerAdvancements) return;
             data.put(Constants.PLAYER_ADVANCEMENTS, AdvancementHandler.save(player));
         });
@@ -133,7 +149,7 @@ public class Singularity implements ProtoConnectionHandler {
             System.out.println(data.get(Constants.PLAYER_ADVANCEMENTS, String.class));
 
             AdvancementHandler.load(player, data.get(Constants.PLAYER_ADVANCEMENTS, String.class));
-        });
+        });*/
 
         // Player Stats
         SyncEvents.SEND_DATA.register((player, data) -> {
@@ -142,8 +158,7 @@ public class Singularity implements ProtoConnectionHandler {
         });
         SyncEvents.RECEIVE_DATA.register((player, data) -> {
             if (!settings.syncPlayerStats) return;
-            player.getStats().parseLocal(server.getFixerUpper(), data.get(Constants.PLAYER_STATS, String.class));
-            player.getStats().sendStats(player);
+            data.get(Constants.PLAYER_STATS, String.class).ifPresent(stats -> player.getStats().parseLocal(server.getFixerUpper(), stats));
         });
     }
 
@@ -161,14 +176,14 @@ public class Singularity implements ProtoConnectionHandler {
                 else incoming.put(data.getPlayer(), data);
             }
             case ServerData data -> {
-                server.getPlayerList().setUsingWhiteList(data.get(Constants.WHITELIST_ENABLED, boolean.class));
-                UserWhiteListHack.install(server, data.get(Constants.WHITELIST, UserWhiteListHack.class));
+                data.get(Constants.WHITELIST_ENABLED, boolean.class).ifPresent(enabled -> server.getPlayerList().setUsingWhiteList(enabled));
+                data.get(Constants.WHITELIST, UserWhiteListHack.class).ifPresent(hack -> UserWhiteListHack.install(server, hack));
 
-                ServerOpListHack.install(server, data.get(Constants.OPERATORS, ServerOpListHack.class));
+                data.get(Constants.OPERATORS, ServerOpListHack.class).ifPresent(hack -> ServerOpListHack.install(server, hack));
                 server.getPlayerList().getPlayers().forEach(p -> server.getPlayerList().sendPlayerPermissionLevel(p));
 
-                UserBanListHack.install(server, data.get(Constants.BANNED_PLAYERS, UserBanListHack.class));
-                IpBanListHack.install(server, data.get(Constants.BANNED_IPS, IpBanListHack.class));
+                data.get(Constants.BANNED_PLAYERS, UserBanListHack.class).ifPresent(hack -> UserBanListHack.install(server, hack));
+                data.get(Constants.BANNED_IPS, IpBanListHack.class).ifPresent(hack -> IpBanListHack.install(server, hack));
             }
             default -> log(Level.WARN, "Ignoring unknown packet: " + packet);
         };

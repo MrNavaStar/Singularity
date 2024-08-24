@@ -12,9 +12,10 @@ dependencies {
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
+    include modLocalRuntime("me.mrnavastar.protoweaver:fabric:${project.protoweaver_version}")
+
     // Dev
     modLocalRuntime "maven.modrinth:easy-eula:1.1.1-fabric"
-    include modLocalRuntime("me.mrnavastar.protoweaver:fabric:${project.protoweaver_version}")
     modLocalRuntime "maven.modrinth:fabricproxy-lite:${project.proxy_lite_version}"
     modLocalRuntime "com.moandjiezana.toml:toml4j:${project.toml4j_version}"
 }

@@ -10,7 +10,7 @@ allprojects {
 
     repositories {
         mavenCentral()
-        maven { url "https://maven.mrnavastar.rocks/releases"}
+        maven { url "https://maven.mrnavastar.me/releases"}
         maven { url "https://maven.minecraftforge.net" }                    // Forge
         maven { url "https://maven.neoforged.net/releases/" }
         maven { url "https://repo.papermc.io/repository/maven-public/" }    // Paper + Velocity
@@ -30,7 +30,8 @@ subprojects {
 
     dependencies {
         compileOnly "me.mrnavastar.protoweaver:common:${project.protoweaver_version}"
-        compileOnly "com.esotericsoftware:kryo5:${project.kyro_version}"
+        compileOnly "org.apache.fury:fury-core:${project.fury_version}"
+        compileOnly "me.mrnavastar:r:${project.r_version}"
 
         compileOnly "org.projectlombok:lombok:${project.lombok_version}"
 	    annotationProcessor "org.projectlombok:lombok:${project.lombok_version}"

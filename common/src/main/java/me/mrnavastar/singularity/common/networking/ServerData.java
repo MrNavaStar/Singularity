@@ -1,54 +1,34 @@
 package me.mrnavastar.singularity.common.networking;
 
-import com.esotericsoftware.kryo.kryo5.Kryo;
-import com.esotericsoftware.kryo.kryo5.Serializer;
-import com.esotericsoftware.kryo.kryo5.io.Input;
-import com.esotericsoftware.kryo.kryo5.io.Output;
-import com.esotericsoftware.kryo.kryo5.objenesis.strategy.StdInstantiatorStrategy;
-import com.esotericsoftware.kryo.kryo5.serializers.DefaultSerializers;
-import com.esotericsoftware.kryo.kryo5.util.DefaultInstantiatorStrategy;
 import lombok.*;
-import me.mrnavastar.singularity.common.Constants;
+import me.mrnavastar.protoweaver.core.util.Furious;
+import org.apache.fury.Fury;
+import org.apache.fury.ThreadSafeFury;
 
 import java.util.HashMap;
-import java.util.UUID;
+import java.util.Optional;
 
 @Getter
 @EqualsAndHashCode
 public class ServerData {
 
-    private static final Kryo kryo = new Kryo();
-    private HashMap<String, byte[]> data = new HashMap<>();
+    private static final ThreadSafeFury FURY = Fury.builder().withJdkClassSerializableCheck(false).buildThreadSafeFury();
 
-    static {
-        kryo.setRegistrationRequired(false);
-        kryo.setInstantiatorStrategy(new DefaultInstantiatorStrategy(new StdInstantiatorStrategy()));
-        kryo.addDefaultSerializer(UUID.class, new DefaultSerializers.UUIDSerializer());
-    }
+    private final HashMap<String, byte[]> data = new HashMap<>();
 
-    public static <T> void registerSerializer(Class<T> type, Serializer<T> serializer) {
-        kryo.addDefaultSerializer(type, serializer);
+    public static void register(Class<?> type) {
+        Furious.register(FURY, type);
     }
 
     public ServerData put(String key, Object object) {
-        try (Output out = new Output(Constants.MAX_DATA_SIZE)) {
-            kryo.writeObject(out, object);
-            data.put(key, out.toBytes());
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        data.put(key, Furious.serialize(FURY, object));
         return this;
     }
 
-    public <T> T get(String key, Class<T> type) {
+    public <T> Optional<T> get(String key, Class<T> type) {
         byte [] data = this.data.get(key);
-        if (data == null) return null;
-
-        try (Input in = new Input(data)) {
-            return kryo.readObject(in, type);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        if (data == null) return Optional.empty();
+        return Optional.of(type.cast(Furious.deserialize(FURY, data)));
     }
 
     public boolean remove(String key) {

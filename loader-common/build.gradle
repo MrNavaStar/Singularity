@@ -6,8 +6,6 @@ dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     mappings loom.officialMojangMappings()
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-
-    implementation "me.mrnavastar:r:1.0.0"
 }
 
 remapJar {
