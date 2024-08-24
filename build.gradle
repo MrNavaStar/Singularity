@@ -30,7 +30,6 @@ subprojects {
 
     dependencies {
         compileOnly "me.mrnavastar.protoweaver:common:${project.protoweaver_version}"
-        compileOnly "org.apache.fury:fury-core:${project.fury_version}"
         compileOnly "me.mrnavastar:r:${project.r_version}"
 
         compileOnly "org.projectlombok:lombok:${project.lombok_version}"

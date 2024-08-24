@@ -1,7 +1,9 @@
 name: Singularity
+author: MrNavaStar
 version: 'debug-build'
 main: me.mrnavastar.singularity.loader.Paper
 api-version: '1.20'
+depend:
+  - ProtoWeaver
 libraries:
-  - org.apache.fury:fury-core:0.7.0
-  - me.mrnavastar:r:1.0.5
+  - me.mrnavastar:r:1.0.6
