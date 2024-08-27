@@ -6,7 +6,7 @@ import me.mrnavastar.protoweaver.api.protocol.velocity.VelocityAuth;
 import me.mrnavastar.singularity.common.networking.PlayerData;
 import me.mrnavastar.singularity.common.networking.Settings;
 import me.mrnavastar.singularity.common.networking.ServerData;
-import me.mrnavastar.singularity.common.networking.UserCache;
+import me.mrnavastar.singularity.common.networking.Profile;
 
 import java.util.UUID;
 
@@ -28,7 +28,7 @@ public class Constants {
             .addPacket(Settings.class)
             .addPacket(PlayerData.class)
             .addPacket(ServerData.class)
-            .addPacket(UserCache.class);
+            .addPacket(Profile.class);
 
     public static final int MAX_DATA_SIZE = 16777216; // 16mb
     public static final UUID SERVER_DATA = new UUID(0, 0);

@@ -4,7 +4,7 @@ import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.GameProfileRepository;
 import lombok.SneakyThrows;
 import me.mrnavastar.r.R;
-import me.mrnavastar.singularity.common.networking.UserCache;
+import me.mrnavastar.singularity.common.networking.Profile;
 import me.mrnavastar.singularity.loader.Singularity;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.Services;
@@ -25,7 +25,7 @@ public class SynchronizedUserCache extends GameProfileCache {
         file.delete();
     }
 
-    public static void update(UserCache user) {
+    public static void update(Profile user) {
         Optional.ofNullable(uuidRequests.remove(user.uuid())).ifPresent(future -> future.complete(Optional.of(new GameProfile(user.uuid(), user.name()))));
         Optional.ofNullable(nameRequests.remove(user.name())).ifPresent(future -> future.complete(Optional.of(new GameProfile(user.uuid(), user.name()))));
     }
@@ -39,19 +39,15 @@ public class SynchronizedUserCache extends GameProfileCache {
     }
 
     private static CompletableFuture<Optional<GameProfile>> getCacheEntry(String player) {
-        Singularity.send(player);
+        Singularity.send(player.toLowerCase(Locale.ROOT));
         CompletableFuture<Optional<GameProfile>> future = new CompletableFuture<>();
-        nameRequests.put(player, future);
+        nameRequests.put(player.toLowerCase(Locale.ROOT), future);
         return future;
     }
 
+    // Ignore
     @Override
-    public void add(GameProfile profile) {
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(new Date());
-        calendar.add(Calendar.MONTH, 1);
-        Singularity.send(new UserCache(profile.getId(), profile.getName(), calendar.getTime()));
-    }
+    public void add(GameProfile profile) {}
 
     @Override
     @SneakyThrows

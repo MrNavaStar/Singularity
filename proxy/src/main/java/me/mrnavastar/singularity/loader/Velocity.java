@@ -3,10 +3,12 @@ package me.mrnavastar.singularity.loader;
 import com.google.gson.Gson;
 import com.google.inject.Inject;
 import com.velocitypowered.api.event.Subscribe;
+import com.velocitypowered.api.event.connection.PostLoginEvent;
 import com.velocitypowered.api.event.player.ServerPreConnectEvent;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.plugin.Dependency;
 import com.velocitypowered.api.plugin.Plugin;
+import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import me.mrnavastar.protoweaver.api.ProtoConnectionHandler;
 import me.mrnavastar.protoweaver.api.netty.ProtoConnection;
@@ -16,7 +18,7 @@ import me.mrnavastar.protoweaver.proxy.api.ProtoServer;
 import me.mrnavastar.singularity.common.Constants;
 import me.mrnavastar.singularity.common.networking.PlayerData;
 import me.mrnavastar.singularity.common.networking.ServerData;
-import me.mrnavastar.singularity.common.networking.UserCache;
+import me.mrnavastar.singularity.common.networking.Profile;
 import me.mrnavastar.sqlib.SQLib;
 import me.mrnavastar.sqlib.api.DataStore;
 import me.mrnavastar.sqlib.api.types.JavaTypes;
@@ -61,6 +63,16 @@ public class Velocity implements ProtoConnectionHandler {
     }
 
     @Subscribe
+    public void onLogin(PostLoginEvent event) {
+        Player player = event.getPlayer();
+        userCache.getOrCreateContainer("uuid", player.getUniqueId(), container -> container.put(JavaTypes.UUID, "uuid", player.getUniqueId()))
+                .transaction()
+                .put(JavaTypes.STRING, "name", player.getUsername().toLowerCase(Locale.ROOT))
+                .put(JavaTypes.STRING, "brand", player.getClientBrand())
+                .commit();
+    }
+
+    @Subscribe
     public void onServerPreConnect(ServerPreConnectEvent event) {
         UUID player = event.getPlayer().getUniqueId();
         event.getResult().getServer().flatMap(current -> ProtoProxy.getConnectedServer(PROTOCOL, current.getServerInfo().getName())).ifPresent(server -> {
@@ -76,12 +88,11 @@ public class Velocity implements ProtoConnectionHandler {
        ProtoProxy.getConnectedServer(PROTOCOL, connection.getRemoteAddress()).flatMap(SingularityConfig::getServerSettings).ifPresent(connection::send);
     }
 
-    private Optional<UserCache> getUser(String field, Object value) {
+    private Optional<Profile> getUser(String field, Object value) {
         return userCache.getContainer(field, value)
                 .flatMap(container -> container.get(JavaTypes.UUID, "uuid")
                 .flatMap(uuid -> container.get(JavaTypes.STRING, "name")
-                .flatMap(name -> container.get(JavaTypes.DATE, "expires")
-                .map(expires -> new UserCache(uuid, name, expires)))));
+                .map(name -> new Profile(uuid, name))));
     }
 
     @Override
@@ -97,12 +108,6 @@ public class Velocity implements ProtoConnectionHandler {
 
             case ServerData data -> dataStore.getOrCreateContainer("player", Constants.SERVER_DATA, container -> container.put(JavaTypes.UUID, "player", Constants.SERVER_DATA))
                     .put(SERVER_DATA, "data", data);
-
-            case UserCache user -> userCache.getOrCreateContainer("uuid", user.uuid(), container -> container.put(JavaTypes.UUID, "uuid", user.uuid()))
-                    .transaction()
-                    .put(JavaTypes.STRING, "name", user.name())
-                    .put(JavaTypes.DATE, "expires", user.expires())
-                    .commit();
 
             case UUID request -> getUser("uuid", request).ifPresentOrElse(connection::send, () -> connection.send(request));
             case String request -> getUser("name", request).ifPresentOrElse(connection::send, () -> connection.send(request));

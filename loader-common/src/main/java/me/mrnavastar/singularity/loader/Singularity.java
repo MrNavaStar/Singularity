@@ -1,6 +1,5 @@
 package me.mrnavastar.singularity.loader;
 
-import com.mojang.authlib.GameProfile;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import me.mrnavastar.protoweaver.api.ProtoConnectionHandler;
@@ -10,7 +9,7 @@ import me.mrnavastar.singularity.common.Constants;
 import me.mrnavastar.singularity.common.networking.PlayerData;
 import me.mrnavastar.singularity.common.networking.Settings;
 import me.mrnavastar.singularity.common.networking.ServerData;
-import me.mrnavastar.singularity.common.networking.UserCache;
+import me.mrnavastar.singularity.common.networking.Profile;
 import me.mrnavastar.singularity.loader.api.SyncEvents;
 import me.mrnavastar.singularity.loader.impl.*;
 import net.minecraft.nbt.*;
@@ -23,7 +22,6 @@ import java.io.*;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class Singularity implements ProtoConnectionHandler {
@@ -196,7 +194,7 @@ public class Singularity implements ProtoConnectionHandler {
                 data.get(Constants.BANNED_IPS, IpBanListHack.class).ifPresent(hack -> IpBanListHack.install(server, hack));
             }
 
-            case UserCache user -> SynchronizedUserCache.update(user);
+            case Profile user -> SynchronizedUserCache.update(user);
             case UUID request -> SynchronizedUserCache.reject(request);
             case String request -> SynchronizedUserCache.reject(request);
 
