@@ -16,6 +16,7 @@ import me.mrnavastar.protoweaver.proxy.api.ProtoServer;
 import me.mrnavastar.singularity.common.Constants;
 import me.mrnavastar.singularity.common.networking.PlayerData;
 import me.mrnavastar.singularity.common.networking.ServerData;
+import me.mrnavastar.singularity.common.networking.UserCache;
 import me.mrnavastar.sqlib.SQLib;
 import me.mrnavastar.sqlib.api.DataStore;
 import me.mrnavastar.sqlib.api.types.JavaTypes;
@@ -42,6 +43,7 @@ public class Velocity implements ProtoConnectionHandler {
     private static final DataStore dataStore = SQLib.getDatabase().dataStore(Constants.SINGULARITY_ID, "data");
     private static final DataStore userCache = SQLib.getDatabase().dataStore(Constants.SINGULARITY_ID, "users");
     private static final SQLibType<PlayerData> PLAYER_DATA = new SQLibType<>(SQLPrimitive.STRING, v -> GSON.toJsonTree(v).toString(), v -> GSON.fromJson(v, PlayerData.class));
+    private static final SQLibType<ServerData> SERVER_DATA = new SQLibType<>(SQLPrimitive.STRING, v -> GSON.toJsonTree(v).toString(), v -> GSON.fromJson(v, ServerData.class));
     private static final ConcurrentHashMap<UUID, ProtoServer> servers = new ConcurrentHashMap<>();
     private static final Protocol PROTOCOL = Constants.PROTOCOL.setClientHandler(Velocity.class).load();
     private static Logger logger;
@@ -74,6 +76,14 @@ public class Velocity implements ProtoConnectionHandler {
        ProtoProxy.getConnectedServer(PROTOCOL, connection.getRemoteAddress()).flatMap(SingularityConfig::getServerSettings).ifPresent(connection::send);
     }
 
+    private Optional<UserCache> getUser(String field, Object value) {
+        return userCache.getContainer(field, value)
+                .flatMap(container -> container.get(JavaTypes.UUID, "uuid")
+                .flatMap(uuid -> container.get(JavaTypes.STRING, "name")
+                .flatMap(name -> container.get(JavaTypes.DATE, "expires")
+                .map(expires -> new UserCache(uuid, name, expires)))));
+    }
+
     @Override
     public void handlePacket(ProtoConnection connection, Object packet) {
         switch (packet) {
@@ -84,9 +94,19 @@ public class Velocity implements ProtoConnectionHandler {
                 dataStore.getOrCreateContainer("player", data.getPlayer(), container -> container.put(JavaTypes.UUID, "player", data.getPlayer()))
                         .put(PLAYER_DATA, "data", data);
             }
-            case ServerData data -> {
-                logger.info("got server data");
-            }
+
+            case ServerData data -> dataStore.getOrCreateContainer("player", Constants.SERVER_DATA, container -> container.put(JavaTypes.UUID, "player", Constants.SERVER_DATA))
+                    .put(SERVER_DATA, "data", data);
+
+            case UserCache user -> userCache.getOrCreateContainer("uuid", user.uuid(), container -> container.put(JavaTypes.UUID, "uuid", user.uuid()))
+                    .transaction()
+                    .put(JavaTypes.STRING, "name", user.name())
+                    .put(JavaTypes.DATE, "expires", user.expires())
+                    .commit();
+
+            case UUID request -> getUser("uuid", request).ifPresentOrElse(connection::send, () -> connection.send(request));
+            case String request -> getUser("name", request).ifPresentOrElse(connection::send, () -> connection.send(request));
+
             default -> logger.warn("Ignoring unknown packet: {}", packet);
         }
     }
