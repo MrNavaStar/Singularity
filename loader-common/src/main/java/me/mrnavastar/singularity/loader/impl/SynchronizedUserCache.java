@@ -17,8 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class SynchronizedUserCache extends GameProfileCache {
 
-    private static final ConcurrentHashMap<UUID, CompletableFuture<Optional<GameProfile>>> uuidRequests = new ConcurrentHashMap<>();
-    private static final ConcurrentHashMap<String, CompletableFuture<Optional<GameProfile>>> nameRequests = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, CompletableFuture<Optional<GameProfile>>> requests = new ConcurrentHashMap<>();
 
     public SynchronizedUserCache(GameProfileRepository gameProfileRepository, File file) {
         super(gameProfileRepository, file);
@@ -26,23 +25,21 @@ public class SynchronizedUserCache extends GameProfileCache {
     }
 
     public static void update(Profile user) {
-        Optional.ofNullable(uuidRequests.remove(user.uuid())).ifPresent(future -> future.complete(Optional.of(new GameProfile(user.uuid(), user.name()))));
-        Optional.ofNullable(nameRequests.remove(user.name())).ifPresent(future -> future.complete(Optional.of(new GameProfile(user.uuid(), user.name()))));
+        Optional.ofNullable(requests.remove(user.uuid().toString())).ifPresent(future -> future.complete(Optional.of(new GameProfile(user.uuid(), user.name()))));
+        Optional.ofNullable(requests.remove(user.name())).ifPresent(future -> future.complete(Optional.of(new GameProfile(user.uuid(), user.name()))));
     }
 
-    public static void reject(String name) {
-        Optional.ofNullable(nameRequests.remove(name)).ifPresent(future -> future.complete(Optional.empty()));
+    public static void reject(Object key) {
+        Optional.ofNullable(requests.remove(key.toString())).ifPresent(future -> future.complete(Optional.empty()));
     }
 
-    public static void reject(UUID uuid) {
-        Optional.ofNullable(uuidRequests.remove(uuid)).ifPresent(future -> future.complete(Optional.empty()));
-    }
-
-    private static CompletableFuture<Optional<GameProfile>> getCacheEntry(String player) {
-        Singularity.send(player.toLowerCase(Locale.ROOT));
-        CompletableFuture<Optional<GameProfile>> future = new CompletableFuture<>();
-        nameRequests.put(player.toLowerCase(Locale.ROOT), future);
-        return future;
+    private static CompletableFuture<Optional<GameProfile>> getCacheEntry(Object key) {
+        return Optional.ofNullable(requests.get(key.toString())).orElseGet(() -> {
+            Singularity.send(key);
+            CompletableFuture<Optional<GameProfile>> future = new CompletableFuture<>();
+            requests.put(key.toString(), future);
+            return future;
+        });
     }
 
     // Ignore
@@ -52,21 +49,18 @@ public class SynchronizedUserCache extends GameProfileCache {
     @Override
     @SneakyThrows
     public Optional<GameProfile> get(String player) {
-        return getCacheEntry(player).get();
+        return getCacheEntry(player.toLowerCase(Locale.ROOT)).get();
     }
 
     @Override
     public CompletableFuture<Optional<GameProfile>> getAsync(String player) {
-        return getCacheEntry(player);
+        return getCacheEntry(player.toLowerCase(Locale.ROOT));
     }
 
     @Override
     @SneakyThrows
     public Optional<GameProfile> get(UUID uuid) {
-        Singularity.send(uuid);
-        CompletableFuture<Optional<GameProfile>> future = new CompletableFuture<>();
-        uuidRequests.put(uuid, future);
-        return future.get();
+        return getCacheEntry(uuid).get();
     }
 
     // Bye bye
