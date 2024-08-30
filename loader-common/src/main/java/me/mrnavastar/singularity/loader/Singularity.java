@@ -12,6 +12,7 @@ import me.mrnavastar.singularity.common.networking.ServerData;
 import me.mrnavastar.singularity.common.networking.Profile;
 import me.mrnavastar.singularity.loader.api.SyncEvents;
 import me.mrnavastar.singularity.loader.impl.*;
+import me.mrnavastar.singularity.loader.util.Mappings;
 import net.minecraft.nbt.*;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -160,7 +161,7 @@ public class Singularity implements ProtoConnectionHandler {
         // Player Stats
         SyncEvents.SEND_DATA.register((player, data) -> {
             if (!settings.syncPlayerStats) return;
-            data.put(Constants.PLAYER_STATS, R.of(player.getStats()).call("toJson", String.class));
+            data.put(Constants.PLAYER_STATS, R.of(player.getStats()).call(Mappings.of("toJson", "method_14911"), String.class));
         });
         SyncEvents.RECEIVE_DATA.register((player, data) -> {
             if (!settings.syncPlayerStats) return;

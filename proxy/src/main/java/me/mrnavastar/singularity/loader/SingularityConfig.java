@@ -3,7 +3,10 @@ package me.mrnavastar.singularity.loader;
 import com.velocitypowered.api.proxy.ProxyServer;
 import me.mrnavastar.protoweaver.proxy.api.ProtoProxy;
 import me.mrnavastar.protoweaver.proxy.api.ProtoServer;
+import me.mrnavastar.singularity.common.Constants;
 import me.mrnavastar.singularity.common.networking.Settings;
+import me.mrnavastar.sqlib.SQLib;
+import me.mrnavastar.sqlib.api.DataStore;
 import org.slf4j.Logger;
 import org.yaml.snakeyaml.Yaml;
 
@@ -17,6 +20,8 @@ public class SingularityConfig {
     private static final HashMap<ProtoServer, String> groups = new HashMap<>();
     private static final HashMap<ProtoServer, Settings> settings = new HashMap<>();
     private static final ArrayList<String> blacklists = new ArrayList<>();
+
+    private static final HashMap<String, DataStore> groupStores = new HashMap<>();
 
     static {
         registerBlacklist("singularity.ender");
@@ -36,6 +41,10 @@ public class SingularityConfig {
 
     public static boolean inSameGroup(ProtoServer server1, ProtoServer server2) {
         return Objects.equals(groups.get(server1), groups.get(server2));
+    }
+
+    public static Optional<DataStore> getServerStore(ProtoServer server) {
+        return Optional.ofNullable(groups.get(server)).map(groupStores::get);
     }
 
     public static void registerBlacklist(String name) {
@@ -66,6 +75,8 @@ public class SingularityConfig {
                         if (s.get("singularity.player") instanceof Boolean enabled) groupSettings.syncPlayerData = enabled;
                         if (s.get("singularity.stats") instanceof Boolean enabled) groupSettings.syncPlayerStats = enabled;
                         if (s.get("singularity.advancements") instanceof Boolean enabled) groupSettings.syncPlayerAdvancements = enabled;
+
+                        groupStores.put(groupName, SQLib.getDatabase().dataStore(Constants.SINGULARITY_ID, groupName));
 
                         ProtoProxy.getRegisteredServers().stream()
                                 .filter(server -> List.of(servers.split("\n")).contains(server.getName()))
