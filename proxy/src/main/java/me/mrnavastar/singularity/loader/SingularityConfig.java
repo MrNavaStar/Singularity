@@ -1,6 +1,5 @@
 package me.mrnavastar.singularity.loader;
 
-import com.velocitypowered.api.proxy.ProxyServer;
 import me.mrnavastar.protoweaver.proxy.api.ProtoProxy;
 import me.mrnavastar.protoweaver.proxy.api.ProtoServer;
 import me.mrnavastar.singularity.common.Constants;
@@ -10,7 +9,6 @@ import me.mrnavastar.sqlib.api.DataStore;
 import org.slf4j.Logger;
 import org.yaml.snakeyaml.Yaml;
 
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.util.*;
@@ -18,10 +16,9 @@ import java.util.*;
 public class SingularityConfig {
 
     private static final HashMap<ProtoServer, String> groups = new HashMap<>();
+    private static final HashMap<String, DataStore> groupStores = new HashMap<>();
     private static final HashMap<ProtoServer, Settings> settings = new HashMap<>();
     private static final ArrayList<String> blacklists = new ArrayList<>();
-
-    private static final HashMap<String, DataStore> groupStores = new HashMap<>();
 
     static {
         registerBlacklist("singularity.ender");
@@ -82,22 +79,25 @@ public class SingularityConfig {
                         if (s.get("singularity.stats") instanceof Boolean enabled) groupSettings.syncPlayerStats = enabled;
                         if (s.get("singularity.advancements") instanceof Boolean enabled) groupSettings.syncPlayerAdvancements = enabled;
 
-                        groupStores.put(groupName, SQLib.getDatabase().dataStore(Constants.SINGULARITY_ID, groupName + "_player_data"));
+                        groupStores.put(groupName, SQLib.getDatabase().dataStore(Constants.SINGULARITY_ID,  "config_" + groupName + "_player_data"));
 
                         ProtoProxy.getRegisteredServers().stream()
                                 .filter(server -> List.of(servers.split("\n")).contains(server.getName()))
-                                .forEach(a -> {
-                                    settings.put(a, groupSettings);
-                                    groups.put(a, groupName);
+                                .forEach(server -> {
+                                    settings.put(server, groupSettings);
+                                    groups.put(server, "config_" + groupName);
                                 });
                     });
                 });
             });
         } catch (FileNotFoundException ignore) {
             logger.info("No config found, loading defaults");
-            new File("plugins/singularity");
 
-            ProtoProxy.getRegisteredServers().forEach(s -> settings.put(s, new Settings().setDefault()));
+            groupStores.put("default", SQLib.getDatabase().dataStore(Constants.SINGULARITY_ID, "default_player_data"));
+            ProtoProxy.getRegisteredServers().forEach(server -> {
+                settings.put(server, new Settings().setDefault());
+                groups.put(server, "default");
+            });
         }
     }
 }
