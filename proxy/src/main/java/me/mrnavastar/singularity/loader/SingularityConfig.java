@@ -47,13 +47,19 @@ public class SingularityConfig {
         return Optional.ofNullable(groups.get(server)).map(groupStores::get);
     }
 
+    public static List<ProtoServer> getSameGroup(ProtoServer server) {
+         return Optional.ofNullable(groups.get(server))
+                 .map(mainGroup -> groups.entrySet().stream().filter(entry -> entry.getValue().equals(mainGroup))
+                    .map(Map.Entry::getKey).toList()).orElseGet(ArrayList::new);
+    }
+
     public static void registerBlacklist(String name) {
         blacklists.add(name);
     }
 
     // Yeah ik this function is awful but like gimme a break
     @SuppressWarnings("unchecked")
-    public static void load(ProxyServer proxy, Logger logger) {
+    public static void load(Logger logger) {
         try {
             Yaml yaml = new Yaml();
             Map<String, Object> map = yaml.load(new FileInputStream("plugins/singularity/singularity.yaml"));

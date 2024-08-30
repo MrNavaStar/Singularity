@@ -44,15 +44,13 @@ public class Velocity implements ProtoConnectionHandler {
     private static final Protocol PROTOCOL = Constants.PROTOCOL.setClientHandler(Velocity.class).load();
 
     @Inject
-    private ProxyServer proxy;
-    @Inject
     private Logger logger;
     private ProtoServer server;
 
     @Subscribe
     public void onProxyInitialization(ProxyInitializeEvent event) {
         logger.info(Constants.SINGULARITY_BOOT_MESSAGE);
-        SingularityConfig.load(proxy, logger);
+        SingularityConfig.load(logger);
     }
 
     @Subscribe
@@ -84,17 +82,20 @@ public class Velocity implements ProtoConnectionHandler {
     public void handlePacket(ProtoConnection connection, Object packet) {
         switch (packet) {
             case PlayerData data -> {
-                Optional.ofNullable(playerLocations.get(data.getPlayer())).ifPresent(oldServer -> {
-                    if (SingularityConfig.inSameGroup(server, oldServer)) oldServer.getConnection().send(data);
+                Optional.ofNullable(playerLocations.get(data.getPlayer())).ifPresent(nextServer -> {
+                    if (SingularityConfig.inSameGroup(server, nextServer)) nextServer.getConnection().send(data);
                 });
 
                 SingularityConfig.getServerStore(server).ifPresent(store -> store.getOrCreateContainer("player", data.getPlayer(), container -> container.put(JavaTypes.UUID, "player", data.getPlayer()))
                         .put(PLAYER_DATA, "data", data));
             }
 
-            case ServerData data -> SingularityConfig.getServerStore(server)
-                    .ifPresent(store -> store.getOrCreateContainer("player", Constants.SERVER_DATA, container -> container.put(JavaTypes.UUID, "player", Constants.SERVER_DATA))
-                    .put(SERVER_DATA, "data", data));
+            case ServerData data -> {
+                SingularityConfig.getSameGroup(server).forEach(server -> server.getConnection().send(data));
+                SingularityConfig.getServerStore(server)
+                        .ifPresent(store -> store.getOrCreateContainer("player", Constants.SERVER_DATA, container -> container.put(JavaTypes.UUID, "player", Constants.SERVER_DATA))
+                        .put(SERVER_DATA, "data", data));
+            }
 
             case UUID request -> UserCache.getUser(request).ifPresentOrElse(connection::send, () -> connection.send(request));
             case String request -> UserCache.getUser(request).ifPresentOrElse(connection::send, () -> connection.send(request));
