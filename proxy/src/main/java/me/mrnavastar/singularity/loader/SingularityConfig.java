@@ -76,7 +76,7 @@ public class SingularityConfig {
                         if (s.get("singularity.stats") instanceof Boolean enabled) groupSettings.syncPlayerStats = enabled;
                         if (s.get("singularity.advancements") instanceof Boolean enabled) groupSettings.syncPlayerAdvancements = enabled;
 
-                        groupStores.put(groupName, SQLib.getDatabase().dataStore(Constants.SINGULARITY_ID, groupName));
+                        groupStores.put(groupName, SQLib.getDatabase().dataStore(Constants.SINGULARITY_ID, groupName + "_player_data"));
 
                         ProtoProxy.getRegisteredServers().stream()
                                 .filter(server -> List.of(servers.split("\n")).contains(server.getName()))

@@ -13,7 +13,7 @@ import java.util.UUID;
 
 public class UserCache {
 
-    private static final DataStore cache = SQLib.getDatabase().dataStore(Constants.SINGULARITY_ID, "users");
+    private static final DataStore cache = SQLib.getDatabase().dataStore(Constants.SINGULARITY_ID, "user_cache");
 
     public static void addUser(Player player) {
         cache.getOrCreateContainer("uuid", player.getUniqueId(), container -> container.put(JavaTypes.UUID, "uuid", player.getUniqueId()))
