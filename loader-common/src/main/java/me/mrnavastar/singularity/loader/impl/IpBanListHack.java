@@ -14,7 +14,7 @@ public class IpBanListHack extends IpBanList {
 
     @Override
     public void save() {
-        Singularity.syncServerData();
+        //Singularity.syncServerData();
     }
 
     // Bye bye

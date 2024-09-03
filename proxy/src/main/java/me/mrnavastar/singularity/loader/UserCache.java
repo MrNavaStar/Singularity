@@ -8,8 +8,6 @@ import me.mrnavastar.sqlib.api.DataStore;
 import me.mrnavastar.sqlib.api.types.JavaTypes;
 
 import java.util.Locale;
-import java.util.Optional;
-import java.util.UUID;
 
 public class UserCache {
 
@@ -23,18 +21,19 @@ public class UserCache {
                 .commit();
     }
 
-    private static Optional<Profile> getUser(String field, Object value) {
+    private static Profile getUser(String field, Object value, Profile profile) {
         return cache.getContainer(field, value)
                 .flatMap(container -> container.get(JavaTypes.UUID, "uuid")
                     .flatMap(uuid -> container.get(JavaTypes.STRING, "name")
-                        .map(name -> new Profile(uuid, name))));
+                        .map(name -> new Profile(uuid, name).setProperty(profile.getProperty()))))
+                .orElseGet(() -> profile.setProperty(Profile.Property.BAD_LOOKUP));
     }
 
-    public static Optional<Profile> getUser(String name) {
-        return getUser("name", name);
+    public static Profile getUserByName(Profile profile) {
+        return getUser("name", profile.getName(), profile);
     }
 
-    public static Optional<Profile> getUser(UUID uuid) {
-        return getUser("uuid", uuid);
+    public static Profile getUserByUUID(Profile profile) {
+        return getUser("uuid", profile.getUuid(), profile);
     }
 }

@@ -1,14 +1,9 @@
 package me.mrnavastar.singularity.loader;
 
-import com.destroystokyo.paper.event.server.WhitelistToggleEvent;
 import me.mrnavastar.singularity.common.Constants;
+import me.mrnavastar.singularity.common.networking.DataBundle;
 import me.mrnavastar.singularity.common.networking.Settings;
-import me.mrnavastar.singularity.common.networking.ServerData;
 import me.mrnavastar.singularity.loader.api.SyncEvents;
-import me.mrnavastar.singularity.loader.impl.IpBanListHack;
-import me.mrnavastar.singularity.loader.impl.ServerOpListHack;
-import me.mrnavastar.singularity.loader.impl.UserBanListHack;
-import me.mrnavastar.singularity.loader.impl.UserWhiteListHack;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
@@ -37,10 +32,10 @@ public class Paper extends JavaPlugin {
             syncPlayerData();
         }
 
-        @EventHandler
+        /*@EventHandler
         public void onToggle(WhitelistToggleEvent event) {
             syncServerData();
-        }
+        }*/
 
         @EventHandler
         public void onPlayerJoin(PlayerJoinEvent event) {
@@ -53,7 +48,7 @@ public class Paper extends JavaPlugin {
         }
 
         @Override
-        protected void processData(ServerPlayer player, ServerData data) {
+        protected void processData(ServerPlayer player, DataBundle data) {
             player.valid = false;
             SyncEvents.RECEIVE_DATA.getInvoker().trigger(player, data);
             player.valid = true;
@@ -70,12 +65,7 @@ public class Paper extends JavaPlugin {
     @Override
     public void onEnable() {
         logger.info(Constants.SINGULARITY_BOOT_MESSAGE);
-        Constants.PROTOCOL.setServerHandler(EventListener.class).load();
+        Constants.WORMHOLE.setServerHandler(EventListener.class).load();
         getServer().getPluginManager().registerEvents(new EventListener(), this);
-
-        UserWhiteListHack.install(MinecraftServer.getServer());
-        ServerOpListHack.install(MinecraftServer.getServer());
-        UserBanListHack.install(MinecraftServer.getServer());
-        IpBanListHack.install(MinecraftServer.getServer());
     }
 }

@@ -1,17 +1,20 @@
 package me.mrnavastar.singularity.loader;
 
+import com.mojang.authlib.GameProfile;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import me.mrnavastar.protoweaver.api.ProtoConnectionHandler;
 import me.mrnavastar.protoweaver.api.netty.ProtoConnection;
 import me.mrnavastar.r.R;
 import me.mrnavastar.singularity.common.Constants;
-import me.mrnavastar.singularity.common.networking.PlayerData;
+import me.mrnavastar.singularity.common.networking.DataBundle;
 import me.mrnavastar.singularity.common.networking.Settings;
-import me.mrnavastar.singularity.common.networking.ServerData;
 import me.mrnavastar.singularity.common.networking.Profile;
 import me.mrnavastar.singularity.loader.api.SyncEvents;
-import me.mrnavastar.singularity.loader.impl.*;
+import me.mrnavastar.singularity.loader.impl.sync.SynchronizedBanList;
+import me.mrnavastar.singularity.loader.impl.sync.SynchronizedOpList;
+import me.mrnavastar.singularity.loader.impl.sync.SynchronizedUserCache;
+import me.mrnavastar.singularity.loader.impl.sync.SynchronizedWhiteList;
 import me.mrnavastar.singularity.loader.util.Mappings;
 import net.minecraft.nbt.*;
 import net.minecraft.server.MinecraftServer;
@@ -33,35 +36,31 @@ public class Singularity implements ProtoConnectionHandler {
     protected static ProtoConnection proxy;
     protected static MinecraftServer server;
 
-    protected static final ConcurrentHashMap<UUID, PlayerData> incoming = new ConcurrentHashMap<>();
+    protected static final ConcurrentHashMap<UUID, DataBundle> incoming = new ConcurrentHashMap<>();
 
     @SneakyThrows
     public Singularity() {
         reloadBlacklists();
-        ServerData.register(ServerOpListHack.class);
-        ServerData.register(UserWhiteListHack.class);
-        ServerData.register(UserBanListHack.class);
-        ServerData.register(IpBanListHack.class);
         // Register NBT Types
-        ServerData.register(ByteArrayTag.class);
-        ServerData.register(ByteTag.class);
-        ServerData.register(CollectionTag.class);
-        ServerData.register(CompoundTag.class);
-        ServerData.register(DoubleTag.class);
-        ServerData.register(EndTag.class);
-        ServerData.register(FloatTag.class);
-        ServerData.register(IntArrayTag.class);
-        ServerData.register(IntTag.class);
-        ServerData.register(ListTag.class);
-        ServerData.register(LongArrayTag.class);
-        ServerData.register(LongTag.class);
-        ServerData.register(NumericTag.class);
-        ServerData.register(ShortTag.class);
-        ServerData.register(StringTag.class);
+        DataBundle.register(ByteArrayTag.class);
+        DataBundle.register(ByteTag.class);
+        DataBundle.register(CollectionTag.class);
+        DataBundle.register(CompoundTag.class);
+        DataBundle.register(DoubleTag.class);
+        DataBundle.register(EndTag.class);
+        DataBundle.register(FloatTag.class);
+        DataBundle.register(IntArrayTag.class);
+        DataBundle.register(IntTag.class);
+        DataBundle.register(ListTag.class);
+        DataBundle.register(LongArrayTag.class);
+        DataBundle.register(LongTag.class);
+        DataBundle.register(NumericTag.class);
+        DataBundle.register(ShortTag.class);
+        DataBundle.register(StringTag.class);
     }
 
     protected void onJoin(ServerPlayer player) {
-        PlayerData data = incoming.remove(player.getUUID());
+        DataBundle data = incoming.remove(player.getUUID());
         if (data != null) processData(player, data);
     }
 
@@ -70,7 +69,7 @@ public class Singularity implements ProtoConnectionHandler {
     }
 
     // Used by paper
-    protected void processData(ServerPlayer player, ServerData data) {
+    protected void processData(ServerPlayer player, DataBundle data) {
         SyncEvents.RECEIVE_DATA.getInvoker().trigger(player, data);
     }
 
@@ -96,33 +95,30 @@ public class Singularity implements ProtoConnectionHandler {
         });
     }
 
-    protected static PlayerData createPlayerDataPacket(ServerPlayer player) {
-        PlayerData data = new PlayerData(player.getUUID());
+    protected static DataBundle createPlayerDataPacket(ServerPlayer player) {
+        DataBundle data = new DataBundle(player.getUUID());
         SyncEvents.SEND_DATA.getInvoker().trigger(player, data);
         return data;
     }
 
     public static void send(Object packet) {
-        if (proxy != null) proxy.send(packet);
-    }
-
-    public static void syncServerData() {
-        if (proxy != null) proxy.send(new ServerData()
-            .put(Constants.OPERATORS, server.getPlayerList().getOps())
-            .put(Constants.WHITELIST_ENABLED, server.getPlayerList().isUsingWhitelist())
-            .put(Constants.WHITELIST, server.getPlayerList().getWhiteList())
-            .put(Constants.BANNED_PLAYERS, server.getPlayerList().getBans())
-            .put(Constants.BANNED_IPS, server.getPlayerList().getIpBans()));
+        if (proxy != null && proxy.isOpen()) proxy.send(packet);
     }
 
     public static void syncPlayerData() {
-        if (proxy != null) server.getPlayerList().getPlayers().forEach(player -> proxy.send(createPlayerDataPacket(player)));
+        if (proxy != null && proxy.isOpen()) server.getPlayerList().getPlayers().forEach(player -> proxy.send(createPlayerDataPacket(player)));
+    }
+
+    public static void syncStaticData(String key, Object value) {
+        if (proxy != null && proxy.isOpen()) proxy.send(new DataBundle(Constants.STATIC_DATA).put(key, value));
     }
 
     public void onReady(ProtoConnection protoConnection) {
         proxy = protoConnection;
-        log(Level.INFO, Constants.SINGULARITY_CONNECT_MESSAGE.formatted(protoConnection.getRemoteAddress()));
         SynchronizedUserCache.install(server);
+        SynchronizedOpList.install(server);
+        SynchronizedWhiteList.install(server);
+        SynchronizedBanList.install(server);
 
         // Player Data
         SyncEvents.SEND_DATA.register(((player, data) -> {
@@ -178,32 +174,28 @@ public class Singularity implements ProtoConnectionHandler {
                 reloadBlacklists();
             }
 
-            case PlayerData data -> {
-                ServerPlayer player = server.getPlayerList().getPlayer(data.getPlayer());
+            case DataBundle data -> {
+                ServerPlayer player = server.getPlayerList().getPlayer(data.getId());
                 if (player != null) processData(player, data);
-                else incoming.put(data.getPlayer(), data);
+                else incoming.put(data.getId(), data);
             }
 
-            case ServerData data -> {
-                data.get(Constants.WHITELIST_ENABLED, boolean.class).ifPresent(enabled -> server.getPlayerList().setUsingWhiteList(enabled));
-                data.get(Constants.WHITELIST, UserWhiteListHack.class).ifPresent(hack -> UserWhiteListHack.install(server, hack));
+            case Profile profile -> {
+                switch (profile.getProperty()) {
+                    case NAME_LOOKUP, UUID_LOOKUP -> SynchronizedUserCache.update(profile, new GameProfile(profile.getUuid(), profile.getName()));
+                    case BAD_LOOKUP -> SynchronizedUserCache.update(profile, null);
 
-                data.get(Constants.OPERATORS, ServerOpListHack.class).ifPresent(hack -> ServerOpListHack.install(server, hack));
-                server.getPlayerList().getPlayers().forEach(p -> server.getPlayerList().sendPlayerPermissionLevel(p));
-
-                data.get(Constants.BANNED_PLAYERS, UserBanListHack.class).ifPresent(hack -> UserBanListHack.install(server, hack));
-                data.get(Constants.BANNED_IPS, IpBanListHack.class).ifPresent(hack -> IpBanListHack.install(server, hack));
+                    case OP -> SynchronizedOpList.update(profile);
+                    case WHITELISTED -> SynchronizedWhiteList.update(profile);
+                    case BANNED -> SynchronizedBanList.update(profile);
+                }
             }
-
-            case Profile user -> SynchronizedUserCache.update(user);
-            case UUID request -> SynchronizedUserCache.reject(request);
-            case String request -> SynchronizedUserCache.reject(request);
 
             default -> log(Level.WARN, "Ignoring unknown packet: " + packet);
         };
     }
 
     protected static void log(Level level, String message) {
-        LogManager.getLogger().log(level, "[" + Constants.SINGULARITY_NAME + "] " + message);
+        LogManager.getLogger().log(level, "[" + Constants.SINGULARITY_NAME + "]: " + message);
     }
 }

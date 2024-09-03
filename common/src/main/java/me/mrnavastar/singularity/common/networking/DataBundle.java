@@ -1,14 +1,19 @@
 package me.mrnavastar.singularity.common.networking;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import me.mrnavastar.protoweaver.core.util.ObjectSerializer;
 
 import java.util.HashMap;
 import java.util.Optional;
+import java.util.UUID;
 
 @Getter
 @EqualsAndHashCode
-public class ServerData {
+@AllArgsConstructor
+public class DataBundle {
+    private UUID id;
 
     private static final ObjectSerializer serializer = new ObjectSerializer();
 
@@ -18,7 +23,7 @@ public class ServerData {
         serializer.register(type);
     }
 
-    public ServerData put(String key, Object object) {
+    public DataBundle put(String key, Object object) {
         data.put(key, serializer.serialize(object));
         return this;
     }
