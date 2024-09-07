@@ -4,45 +4,47 @@ import com.mojang.authlib.GameProfile;
 import lombok.SneakyThrows;
 import me.mrnavastar.r.R;
 import me.mrnavastar.singularity.common.Constants;
-import me.mrnavastar.singularity.common.networking.Profile;
-import me.mrnavastar.singularity.loader.Singularity;
+import me.mrnavastar.singularity.common.networking.DataBundle;
+import me.mrnavastar.singularity.loader.Dead;
 import me.mrnavastar.singularity.loader.util.Mappings;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.players.*;
-
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
+import org.jetbrains.annotations.Nullable;
 
 public class SynchronizedOpList extends ServerOpList {
-
-    private static final ConcurrentHashMap<UUID, CompletableFuture<Boolean>> requests = new ConcurrentHashMap<>();
 
     public SynchronizedOpList() {
         super(PlayerList.OPLIST_FILE);
         PlayerList.OPLIST_FILE.delete();
     }
 
-    public static void update(Profile profile) {
-        Optional.ofNullable(requests.remove(profile.getUuid())).ifPresent(future -> future.complete(profile.isValue()));
+    @Override
+    public void add(ServerOpListEntry entry) {
+        GameProfile profile = R.of(entry).get("user", GameProfile.class);
+        Dead.putPlayerTopic(profile.getId(), Constants.OPERATOR, new DataBundle()
+                .put("level", entry.getLevel())
+                .put("bypass", entry.getBypassesPlayerLimit()));
+    }
+
+    @Override
+    public void remove(GameProfile profile) {
+        Dead.removePlayerTopic(profile.getId(), Constants.OPERATOR);
+    }
+
+    @Override
+    @SneakyThrows
+    public @Nullable ServerOpListEntry get(GameProfile profile) {
+        return Dead.getPlayerTopic(profile.getId(), Constants.OPERATOR).get()
+                .flatMap(data -> data.get("level", int.class)
+                .flatMap(level -> data.get("bypass", boolean.class)
+                        .map(bypass -> new ServerOpListEntry(profile, level, bypass))))
+                .orElse(null);
     }
 
     @Override
     @SneakyThrows
     protected boolean contains(GameProfile profile) {
-        return Optional.ofNullable(requests.get(profile.getId())).orElseGet(() -> {
-            CompletableFuture<Boolean> future = new CompletableFuture<>();
-            requests.put(profile.getId(), future);
-            Singularity.send(new Profile(profile.getId(), profile.getName()).setProperty(Profile.Property.OP));
-            return future;
-        }).get();
-    }
-
-    @Override
-    public void add(ServerOpListEntry storedUserEntry) {
-        GameProfile profile = R.of(storedUserEntry).get("user", GameProfile.class);
-        Singularity.syncStaticData(Constants.OPERATORS, new Profile(profile.getId(), profile.getName()));
+        return Dead.getPlayerTopic(profile.getId(), Constants.OPERATOR).get().isPresent();
     }
 
     // Bye bye

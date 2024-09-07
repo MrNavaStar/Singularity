@@ -4,45 +4,54 @@ import com.mojang.authlib.GameProfile;
 import lombok.SneakyThrows;
 import me.mrnavastar.r.R;
 import me.mrnavastar.singularity.common.Constants;
-import me.mrnavastar.singularity.common.networking.Profile;
-import me.mrnavastar.singularity.loader.Singularity;
+import me.mrnavastar.singularity.common.networking.DataBundle;
+import me.mrnavastar.singularity.loader.Dead;
 import me.mrnavastar.singularity.loader.util.Mappings;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.players.*;
+import org.jetbrains.annotations.Nullable;
 
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Date;
 
 public class SynchronizedBanList extends UserBanList {
-
-    private static final ConcurrentHashMap<UUID, CompletableFuture<Boolean>> requests = new ConcurrentHashMap<>();
 
     public SynchronizedBanList() {
         super(PlayerList.USERBANLIST_FILE);
         PlayerList.USERBANLIST_FILE.delete();
     }
 
-    public static void update(Profile profile) {
-        Optional.ofNullable(requests.remove(profile.getUuid())).ifPresent(future -> future.complete(profile.isValue()));
+    @Override
+    public void add(UserBanListEntry entry) {
+        GameProfile profile = R.of(entry).get("user", GameProfile.class);
+        Dead.putPlayerTopic(profile.getId(), Constants.BANNED_PLAYERS, new DataBundle()
+                .put("created", entry.getCreated())
+                .put("source", entry.getSource())
+                .put("expires", entry.getExpires())
+                .put("reason", entry.getReason()));
+    }
+
+    @Override
+    public void remove(GameProfile profile) {
+        Dead.removePlayerTopic(profile.getId(), Constants.BANNED_PLAYERS);
     }
 
     @Override
     @SneakyThrows
-    public boolean isBanned(GameProfile profile) {
-        return Optional.ofNullable(requests.get(profile.getId())).orElseGet(() -> {
-            CompletableFuture<Boolean> future = new CompletableFuture<>();
-            requests.put(profile.getId(), future);
-            Singularity.send(new Profile(profile.getId(), profile.getName()).setProperty(Profile.Property.BANNED));
-            return future;
-        }).get();
+    public @Nullable UserBanListEntry get(GameProfile profile) {
+        return Dead.getPlayerTopic(profile.getId(), Constants.BANNED_PLAYERS).get()
+                .map(data -> {
+                    Date created = data.get("created", Date.class).orElse(null);
+                    String source = data.get("source", String.class).orElse(null);
+                    Date expires = data.get("expires", Date.class).orElse(null);
+                    String reason = data.get("reason", String.class).orElse(null);
+                    return new UserBanListEntry(profile, created, source, expires, reason);
+                }).orElse(null);
     }
 
     @Override
-    public void add(UserBanListEntry storedUserEntry) {
-        GameProfile profile = R.of(storedUserEntry).get("user", GameProfile.class);
-        Singularity.syncStaticData(Constants.BANNED_PLAYERS, new Profile(profile.getId(), profile.getName()));
+    @SneakyThrows
+    protected boolean contains(GameProfile profile) {
+        return Dead.getPlayerTopic(profile.getId(), Constants.BANNED_PLAYERS).get().isPresent();
     }
 
     // Bye bye

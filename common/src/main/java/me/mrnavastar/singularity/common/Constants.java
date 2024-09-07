@@ -6,6 +6,7 @@ import me.mrnavastar.protoweaver.api.protocol.velocity.VelocityAuth;
 import me.mrnavastar.singularity.common.networking.DataBundle;
 import me.mrnavastar.singularity.common.networking.Settings;
 import me.mrnavastar.singularity.common.networking.Profile;
+import me.mrnavastar.singularity.common.networking.Subscription;
 
 import java.util.UUID;
 
@@ -25,16 +26,18 @@ public class Constants {
             .setMaxConnections(1)
             .addPacket(Settings.class)
             .addPacket(DataBundle.class)
+            .addPacket(Subscription.class)
             .addPacket(Profile.class);
 
-    public static final int MAX_DATA_SIZE = 16777216; // 16mb
     public static final UUID STATIC_DATA = new UUID(0, 0);
-    public static final String PLAYER_DATA = SINGULARITY_ID + ":player";
+    public static final UUID GLOBAL_DATA = new UUID(0, 1);
+    public static final String PLAYER_TOPIC = SINGULARITY_ID + ":player";
+
     public static final String PLAYER_ADVANCEMENTS = SINGULARITY_ID + ":adv";
     public static final String PLAYER_STATS = SINGULARITY_ID + ":stats";
     public static final String WHITELIST_ENABLED = SINGULARITY_ID + ":elist";
     public static final String WHITELIST = SINGULARITY_ID + ":list";
-    public static final String OPERATORS = SINGULARITY_ID + ":ops";
+    public static final String OPERATOR = SINGULARITY_ID + ":op";
     public static final String BANNED_PLAYERS = SINGULARITY_ID + ":bans";
     public static final String BANNED_IPS = SINGULARITY_ID + ":ibans";
 }

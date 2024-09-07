@@ -4,45 +4,41 @@ import com.mojang.authlib.GameProfile;
 import lombok.SneakyThrows;
 import me.mrnavastar.r.R;
 import me.mrnavastar.singularity.common.Constants;
-import me.mrnavastar.singularity.common.networking.Profile;
-import me.mrnavastar.singularity.loader.Singularity;
+import me.mrnavastar.singularity.common.networking.DataBundle;
+import me.mrnavastar.singularity.loader.Dead;
 import me.mrnavastar.singularity.loader.util.Mappings;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.players.*;
-
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
+import org.jetbrains.annotations.Nullable;
 
 public class SynchronizedWhiteList extends UserWhiteList {
-
-    private static final ConcurrentHashMap<UUID, CompletableFuture<Boolean>> requests = new ConcurrentHashMap<>();
 
     public SynchronizedWhiteList() {
         super(PlayerList.WHITELIST_FILE);
         PlayerList.WHITELIST_FILE.delete();
     }
 
-    public static void update(Profile profile) {
-        Optional.ofNullable(requests.remove(profile.getUuid())).ifPresent(future -> future.complete(profile.isValue()));
+    @Override
+    public void add(UserWhiteListEntry entry) {
+        GameProfile profile = R.of(entry).get("user", GameProfile.class);
+        Dead.putPlayerTopic(profile.getId(), Constants.WHITELIST, new DataBundle());
+    }
+
+    @Override
+    public void remove(GameProfile profile) {
+        Dead.removePlayerTopic(profile.getId(), Constants.WHITELIST);
     }
 
     @Override
     @SneakyThrows
-    public boolean isWhiteListed(GameProfile profile) {
-        return Optional.ofNullable(requests.get(profile.getId())).orElseGet(() -> {
-            CompletableFuture<Boolean> future = new CompletableFuture<>();
-            requests.put(profile.getId(), future);
-            Singularity.send(new Profile(profile.getId(), profile.getName()).setProperty(Profile.Property.WHITELISTED));
-            return future;
-        }).get();
+    public @Nullable UserWhiteListEntry get(GameProfile profile) {
+        return contains(profile) ? new UserWhiteListEntry(profile) : null;
     }
 
     @Override
-    public void add(UserWhiteListEntry storedUserEntry) {
-        GameProfile profile = R.of(storedUserEntry).get("user", GameProfile.class);
-        Singularity.syncStaticData(Constants.WHITELIST, new Profile(profile.getId(), profile.getName()));
+    @SneakyThrows
+    protected boolean contains(GameProfile profile) {
+         return Dead.getPlayerTopic(profile.getId(), Constants.WHITELIST).get().isPresent();
     }
 
     // Bye bye

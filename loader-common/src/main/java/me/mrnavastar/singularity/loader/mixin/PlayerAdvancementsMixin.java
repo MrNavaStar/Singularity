@@ -1,6 +1,6 @@
 package me.mrnavastar.singularity.loader.mixin;
 
-import me.mrnavastar.singularity.loader.Singularity;
+import me.mrnavastar.singularity.loader.Dead;
 import net.minecraft.server.PlayerAdvancements;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -12,6 +12,6 @@ public class PlayerAdvancementsMixin {
 
     @Inject(method = "save", at = @At("HEAD"), cancellable = true)
     private void save(CallbackInfo ci) {
-        if (Singularity.getSettings().syncPlayerAdvancements) ci.cancel();
+        if (Dead.getSettings().syncPlayerAdvancements) ci.cancel();
     }
 }

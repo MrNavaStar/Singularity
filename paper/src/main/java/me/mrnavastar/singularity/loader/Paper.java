@@ -3,7 +3,8 @@ package me.mrnavastar.singularity.loader;
 import me.mrnavastar.singularity.common.Constants;
 import me.mrnavastar.singularity.common.networking.DataBundle;
 import me.mrnavastar.singularity.common.networking.Settings;
-import me.mrnavastar.singularity.loader.api.SyncEvents;
+import me.mrnavastar.singularity.loader.api.Singularity;
+import me.mrnavastar.singularity.loader.impl.sync.SynchronizedPlayerData;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
@@ -21,10 +22,10 @@ public class Paper extends JavaPlugin {
 
     private final Logger logger = getLogger();
 
-    public static class EventListener extends Singularity implements Listener {
+    public static class EventListener extends SynchronizedPlayerData implements Listener {
 
         public EventListener() {
-            server = MinecraftServer.getServer();
+            init(MinecraftServer.getServer());
         }
 
         @EventHandler
@@ -47,10 +48,9 @@ public class Paper extends JavaPlugin {
             onLeave(((CraftPlayer) event.getPlayer()).getHandle());
         }
 
-        @Override
-        protected void processData(ServerPlayer player, DataBundle data) {
+        protected static void processData(ServerPlayer player, DataBundle data) {
             player.valid = false;
-            SyncEvents.RECEIVE_DATA.getInvoker().trigger(player, data);
+            Singularity.RECEIVE_DATA.getInvoker().trigger(player, data);
             player.valid = true;
         }
 
