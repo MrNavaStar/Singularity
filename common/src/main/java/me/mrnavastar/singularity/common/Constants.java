@@ -35,8 +35,7 @@ public class Constants {
 
     public static final String PLAYER_ADVANCEMENTS = SINGULARITY_ID + ":adv";
     public static final String PLAYER_STATS = SINGULARITY_ID + ":stats";
-    public static final String WHITELIST_ENABLED = SINGULARITY_ID + ":elist";
-    public static final String WHITELIST = SINGULARITY_ID + ":list";
+    public static final String WHITELIST = SINGULARITY_ID + ":white";
     public static final String OPERATOR = SINGULARITY_ID + ":op";
     public static final String BANNED_PLAYERS = SINGULARITY_ID + ":bans";
     public static final String BANNED_IPS = SINGULARITY_ID + ":ibans";

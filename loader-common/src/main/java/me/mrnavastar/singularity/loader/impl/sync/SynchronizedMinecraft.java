@@ -1,10 +1,9 @@
 package me.mrnavastar.singularity.loader.impl.sync;
 
+import lombok.Setter;
 import me.mrnavastar.r.R;
 import me.mrnavastar.singularity.common.Constants;
 import me.mrnavastar.singularity.common.networking.DataBundle;
-import me.mrnavastar.singularity.common.networking.Settings;
-import me.mrnavastar.singularity.loader.Dead;
 import me.mrnavastar.singularity.loader.api.Singularity;
 import me.mrnavastar.singularity.loader.impl.Broker;
 import me.mrnavastar.singularity.loader.util.Mappings;
@@ -20,14 +19,17 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
-public class SynchronizedPlayerData {
+public class SynchronizedMinecraft {
 
     private static final ConcurrentHashMap<UUID, DataBundle> incoming = new ConcurrentHashMap<>();
     private static final HashSet<String> nbtBlacklist = new HashSet<>();
-    private static Settings settings = new Settings();
+    @Setter private static Consumer<ServerPlayer> playerCallback;
+    private static MinecraftServer server;
 
-    public static void init(MinecraftServer server) {
+    public static void init(MinecraftServer s) {
+        server = s;
         SynchronizedUserCache.install(server);
         SynchronizedOpList.install(server);
         SynchronizedWhiteList.install(server);
@@ -53,21 +55,26 @@ public class SynchronizedPlayerData {
 
         reloadBlacklists();
 
+        // Listen for player data from velocity
         Broker.subPlayerTopic(Constants.PLAYER_TOPIC, (uuid, data) -> Optional.ofNullable(server.getPlayerList().getPlayer(data.meta().id()))
                 .ifPresentOrElse(player -> processData(player, data), () -> incoming.put(data.meta().id(), data)));
 
-        Broker.subStaticTopic(Constants.WHITELIST, data -> server.setEnforceWhitelist(data.get("enabled", boolean.class).orElse(false)));
+        // Get current whitelist state and listen for future changes
+        Broker.getStaticTopic(Constants.WHITELIST).whenComplete((bundle, throwable) -> bundle.ifPresent(data -> SynchronizedWhiteList.ENABLED.accept(server, data)));
+        Broker.subStaticTopic(Constants.WHITELIST, data -> SynchronizedWhiteList.ENABLED.accept(server, data));
 
         // Player Data
         Singularity.SEND_DATA.register(((player, data) -> {
-            if (!settings.syncPlayerData) return;
+            if (!Broker.getSettings().syncPlayerData) return;
             CompoundTag nbt = new CompoundTag();
             player.saveWithoutId(nbt);
             data.put(Constants.PLAYER_TOPIC + ":nbt", nbt);
         }));
 
         Singularity.RECEIVE_DATA.register(((player, data) -> {
-            if (!settings.syncPlayerData) return;
+            System.out.println("here??");
+
+            if (!Broker.getSettings().syncPlayerData) return;
             data.get(Constants.PLAYER_TOPIC + ":nbt", CompoundTag.class).ifPresent(nbt -> {
                 CompoundTag current = new CompoundTag();
                 player.saveWithoutId(current);
@@ -94,20 +101,20 @@ public class SynchronizedPlayerData {
 
         // Player Stats
         Singularity.SEND_DATA.register((player, data) -> {
-            if (!settings.syncPlayerStats) return;
+            if (!Broker.getSettings().syncPlayerStats) return;
             data.put(Constants.PLAYER_STATS, R.of(player.getStats()).call(Mappings.of("toJson", "method_14911"), String.class));
         });
         Singularity.RECEIVE_DATA.register((player, data) -> {
-            if (!settings.syncPlayerStats) return;
+            if (!Broker.getSettings().syncPlayerStats) return;
             data.get(Constants.PLAYER_STATS, String.class).ifPresent(stats -> player.getStats().parseLocal(server.getFixerUpper(), stats));
         });
     }
 
-    private static void reloadBlacklists() {
+    public static void reloadBlacklists() {
         nbtBlacklist.clear();
-        settings.nbtBlacklists.add("singularity.never");
-        settings.nbtBlacklists.forEach(name -> {
-            try (InputStream stream = Dead.class.getClassLoader().getResourceAsStream(name)) {
+        Broker.getSettings().nbtBlacklists.add("singularity.never");
+        Broker.getSettings().nbtBlacklists.forEach(name -> {
+            try (InputStream stream = SynchronizedMinecraft.class.getClassLoader().getResourceAsStream(name)) {
                 if (stream == null) {
                     log(Level.WARN, "Failed to load blacklist: " + name);
                     return;
@@ -123,9 +130,13 @@ public class SynchronizedPlayerData {
     }
 
     protected static DataBundle createPlayerDataBundle(ServerPlayer player) {
-        DataBundle data = new DataBundle().propagate();
+        DataBundle data = new DataBundle();
         Singularity.SEND_DATA.getInvoker().trigger(player, data);
         return data;
+    }
+
+    public static void syncPlayerData() {
+        server.getPlayerList().getPlayers().forEach(player -> Broker.putPlayerTopic(player.getUUID(), Constants.PLAYER_TOPIC, createPlayerDataBundle(player)));
     }
 
     protected static void onJoin(ServerPlayer player) {
@@ -137,13 +148,11 @@ public class SynchronizedPlayerData {
         Broker.putPlayerTopic(player.getUUID(), Constants.PLAYER_TOPIC, createPlayerDataBundle(player));
     }
 
-    // Used by paper
     protected static void processData(ServerPlayer player, DataBundle data) {
+        if (playerCallback != null) playerCallback.accept(player);
         Singularity.RECEIVE_DATA.getInvoker().trigger(player, data);
+        if (playerCallback != null) playerCallback.accept(player);
     }
-
-    // Used by paper
-    protected static void processSettings(Settings settings) {}
 
     protected static void log(Level level, String message) {
         LogManager.getLogger().log(level, "[" + Constants.SINGULARITY_NAME + "]: " + message);

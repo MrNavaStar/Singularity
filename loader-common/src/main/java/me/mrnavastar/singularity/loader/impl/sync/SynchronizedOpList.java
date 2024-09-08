@@ -5,7 +5,7 @@ import lombok.SneakyThrows;
 import me.mrnavastar.r.R;
 import me.mrnavastar.singularity.common.Constants;
 import me.mrnavastar.singularity.common.networking.DataBundle;
-import me.mrnavastar.singularity.loader.Dead;
+import me.mrnavastar.singularity.loader.impl.Broker;
 import me.mrnavastar.singularity.loader.util.Mappings;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.players.*;
@@ -21,20 +21,20 @@ public class SynchronizedOpList extends ServerOpList {
     @Override
     public void add(ServerOpListEntry entry) {
         GameProfile profile = R.of(entry).get("user", GameProfile.class);
-        Dead.putPlayerTopic(profile.getId(), Constants.OPERATOR, new DataBundle()
+        Broker.putPlayerTopic(profile.getId(), Constants.OPERATOR, new DataBundle()
                 .put("level", entry.getLevel())
                 .put("bypass", entry.getBypassesPlayerLimit()));
     }
 
     @Override
     public void remove(GameProfile profile) {
-        Dead.removePlayerTopic(profile.getId(), Constants.OPERATOR);
+        Broker.removePlayerTopic(profile.getId(), Constants.OPERATOR);
     }
 
     @Override
     @SneakyThrows
     public @Nullable ServerOpListEntry get(GameProfile profile) {
-        return Dead.getPlayerTopic(profile.getId(), Constants.OPERATOR).get()
+        return Broker.getPlayerTopic(profile.getId(), Constants.OPERATOR).get()
                 .flatMap(data -> data.get("level", int.class)
                 .flatMap(level -> data.get("bypass", boolean.class)
                         .map(bypass -> new ServerOpListEntry(profile, level, bypass))))
@@ -44,7 +44,7 @@ public class SynchronizedOpList extends ServerOpList {
     @Override
     @SneakyThrows
     protected boolean contains(GameProfile profile) {
-        return Dead.getPlayerTopic(profile.getId(), Constants.OPERATOR).get().isPresent();
+        return Broker.getPlayerTopic(profile.getId(), Constants.OPERATOR).get().isPresent();
     }
 
     // Bye bye

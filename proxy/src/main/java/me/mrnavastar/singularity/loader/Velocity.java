@@ -63,12 +63,9 @@ public class Velocity implements ProtoConnectionHandler {
         UUID player = event.getPlayer().getUniqueId();
         event.getResult().getServer().flatMap(current -> ProtoProxy.getConnectedServer(WORMHOLE, current.getServerInfo().getName())).ifPresent(server -> {
             if (event.getPreviousServer() == null) SingularityConfig.getServerStore(server)
-                    .flatMap(store -> store.getContainer("uuid", player)
-                    .flatMap(c -> {
-
-                        return c.get(DATA_BUNDLE, "data");
-
-                    }))
+                    .flatMap(store -> store.getContainer("uuid", player))
+                    .flatMap(c -> c.get(DATA_BUNDLE, Constants.PLAYER_TOPIC.replace(":", "_")))
+                    .map(data -> data.meta(new DataBundle.Meta().action(DataBundle.Action.PUT)))
                     .ifPresent(data -> server.getConnection().send(data));
             else playerLocations.put(player, server);
         });
@@ -86,30 +83,45 @@ public class Velocity implements ProtoConnectionHandler {
     public void handlePacket(ProtoConnection connection, Object packet) {
         switch (packet) {
             case Subscription sub -> {
-                subs.put(server)
+                HashSet<String> topics = subs.getOrDefault(server, new HashSet<>());
+                topics.add(sub.toString());
+                subs.put(server, topics);
             }
 
-            case DataBundle.Meta meta -> SingularityConfig.getServerStore(server)
-                    .ifPresentOrElse(store -> store.getContainer("uuid", meta.id())
-                            .map(c -> c.get(DATA_BUNDLE, meta.topic()))
-                            .ifPresent(connection::send), () -> connection.send(meta));
-
-            case DataBundle data -> {
-                switch (data.meta().action()) {
-                    case PUT -> {
-                        if (data.shouldPropagate()) Optional.ofNullable(playerLocations.get(data.meta().id())).ifPresent(nextServer -> {
-                            if (SingularityConfig.inSameGroup(server, nextServer)) nextServer.getConnection().send(data);
-                        });
-
-                        SingularityConfig.getServerStore(server)
-                                .ifPresent(store -> store.getOrCreateContainer("uuid", data.meta().id(), c -> c.put(JavaTypes.UUID, "uuid", data.meta().id()))
-                                        .put(DATA_BUNDLE, data.meta().topic(), data));
-                    }
+            case DataBundle.Meta meta -> {
+                switch (meta.action()) {
+                    case GET -> SingularityConfig.getServerStore(server)
+                            .flatMap(store -> store.getContainer("uuid", meta.id()))
+                            .flatMap(c -> c.get(DATA_BUNDLE, meta.topic().replace(":", "_")))
+                            .ifPresentOrElse(data -> connection.send(data.meta(meta)), () -> connection.send(meta));
 
                     case REMOVE -> SingularityConfig.getServerStore(server)
-                            .flatMap(store -> store.getContainer("uuid", data.meta().id()))
-                            .ifPresent(c -> c.clear(data.meta().topic()));
+                            .flatMap(store -> store.getContainer("uuid", meta.id()))
+                            .ifPresent(c -> c.clear(meta.topic().replace(":", "_")));
                 }
+            }
+
+            case DataBundle data -> {
+                if (!DataBundle.Action.PUT.equals(data.meta().action())) return;
+
+                // TODO: Perhaps change how data is propagated - currently player data will only send to the server the
+                //  player is going to be on. Should this be different?
+                // Forward data to subscribed servers
+                String topicKey = data.meta().topicType() + ":" + data.meta().topic();
+                SingularityConfig.getSameGroup(server).stream()
+                        .filter(s ->  {
+                            if (data.meta().propagate() || !data.meta().topicType().equals(Subscription.TopicType.PLAYER)) return true;
+                            Optional<ProtoServer> location = Optional.ofNullable(playerLocations.get(data.meta().id()));
+                            return location.isPresent() && location.get().equals(s);
+                        })
+                        .filter(s -> subs.getOrDefault(s, new HashSet<>()).contains(topicKey))
+                        .forEach(s -> s.getConnection().send(data));
+
+                // Store data in database
+                SingularityConfig.getServerStore(server)
+                        .ifPresent(store -> store.getOrCreateContainer("uuid", data.meta().id(), c -> c.put(JavaTypes.UUID, "uuid", data.meta().id()))
+                                .put(DATA_BUNDLE, data.meta().topic().replace(":", "_"), data));
+
             }
 
             case Profile profile -> {

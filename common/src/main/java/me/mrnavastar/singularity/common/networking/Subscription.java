@@ -1,11 +1,14 @@
 package me.mrnavastar.singularity.common.networking;
 
-import java.util.UUID;
+public record Subscription(TopicType type, String topic) {
 
-public record Subscription(UUID uuid, String topic) {
+    public enum TopicType {
+        PLAYER,
+        STATIC
+    }
 
     @Override
     public String toString() {
-        return topic + ":" + uuid;
+        return type + ":" + topic;
     }
 }

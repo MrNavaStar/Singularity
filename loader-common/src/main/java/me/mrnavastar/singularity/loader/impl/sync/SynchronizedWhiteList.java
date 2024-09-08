@@ -5,28 +5,36 @@ import lombok.SneakyThrows;
 import me.mrnavastar.r.R;
 import me.mrnavastar.singularity.common.Constants;
 import me.mrnavastar.singularity.common.networking.DataBundle;
-import me.mrnavastar.singularity.loader.Dead;
+import me.mrnavastar.singularity.loader.impl.Broker;
 import me.mrnavastar.singularity.loader.util.Mappings;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.players.*;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.function.BiConsumer;
+
 public class SynchronizedWhiteList extends UserWhiteList {
+
+    public static BiConsumer<MinecraftServer, DataBundle> ENABLED = (server, bundle) -> server.setEnforceWhitelist(bundle.get("enabled", boolean.class).orElse(false));
 
     public SynchronizedWhiteList() {
         super(PlayerList.WHITELIST_FILE);
         PlayerList.WHITELIST_FILE.delete();
     }
 
+    public static void setEnabled(boolean enabled) {
+        Broker.putStaticTopic(Constants.WHITELIST, new DataBundle().put("enabled", enabled));
+    }
+
     @Override
     public void add(UserWhiteListEntry entry) {
         GameProfile profile = R.of(entry).get("user", GameProfile.class);
-        Dead.putPlayerTopic(profile.getId(), Constants.WHITELIST, new DataBundle());
+        Broker.putPlayerTopic(profile.getId(), Constants.WHITELIST, new DataBundle());
     }
 
     @Override
     public void remove(GameProfile profile) {
-        Dead.removePlayerTopic(profile.getId(), Constants.WHITELIST);
+        Broker.removePlayerTopic(profile.getId(), Constants.WHITELIST);
     }
 
     @Override
@@ -38,7 +46,7 @@ public class SynchronizedWhiteList extends UserWhiteList {
     @Override
     @SneakyThrows
     protected boolean contains(GameProfile profile) {
-         return Dead.getPlayerTopic(profile.getId(), Constants.WHITELIST).get().isPresent();
+         return Broker.getPlayerTopic(profile.getId(), Constants.WHITELIST).get().isPresent();
     }
 
     // Bye bye

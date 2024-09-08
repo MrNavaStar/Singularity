@@ -5,7 +5,7 @@ import com.mojang.authlib.GameProfileRepository;
 import lombok.SneakyThrows;
 import me.mrnavastar.r.R;
 import me.mrnavastar.singularity.common.networking.Profile;
-import me.mrnavastar.singularity.loader.Dead;
+import me.mrnavastar.singularity.loader.impl.Broker;
 import me.mrnavastar.singularity.loader.util.Mappings;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.Services;
@@ -36,7 +36,7 @@ public class SynchronizedUserCache extends GameProfileCache {
         if (key != null) return Optional.ofNullable(requests.get(key)).orElseGet(() -> {
             CompletableFuture<Optional<GameProfile>> future = new CompletableFuture<>();
             requests.put(key, future);
-            Dead.send(profile);
+            Broker.getProxy().send(profile);
             return future;
         });
         return null;

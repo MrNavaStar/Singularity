@@ -3,7 +3,7 @@ package me.mrnavastar.singularity.loader;
 import me.mrnavastar.protoweaver.api.ProtoWeaver;
 import me.mrnavastar.singularity.common.Constants;
 import me.mrnavastar.singularity.loader.impl.Broker;
-import me.mrnavastar.singularity.loader.impl.sync.SynchronizedPlayerData;
+import me.mrnavastar.singularity.loader.impl.sync.SynchronizedMinecraft;
 import me.mrnavastar.singularity.loader.util.Mappings;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.common.MinecraftForge;
@@ -16,7 +16,7 @@ import org.apache.logging.log4j.Level;
 import java.util.function.Consumer;
 
 @Mod(Constants.SINGULARITY_ID)
-public class Forge extends SynchronizedPlayerData {
+public class Forge extends SynchronizedMinecraft {
 
     static {
         Mappings.setDev(!FMLEnvironment.production);

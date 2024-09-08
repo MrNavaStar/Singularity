@@ -9,10 +9,6 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class Profile {
 
-    static {
-        DataBundle.register(Profile.class);
-    }
-
     private final UUID uuid;
     private final String name;
     private Property property;

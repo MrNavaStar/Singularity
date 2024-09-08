@@ -12,6 +12,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Accessors(fluent = true)
+@Setter
 @Getter
 @EqualsAndHashCode
 public class DataBundle {
@@ -19,7 +20,8 @@ public class DataBundle {
     public enum Action {
         PUT,
         GET,
-        REMOVE
+        REMOVE,
+        NONE
     }
 
     @Setter
@@ -28,7 +30,9 @@ public class DataBundle {
     public static class Meta {
         private UUID id;
         private String topic;
-        private Action action;
+        private Action action = Action.NONE;
+        private Subscription.TopicType topicType;
+        private boolean propagate = false;
 
         @Override
         public String toString() {
@@ -38,9 +42,8 @@ public class DataBundle {
 
     private static final ObjectSerializer serializer = new ObjectSerializer();
 
-    private final HashMap<String, byte[]> data = new HashMap<>();
-    private final Meta meta = new Meta();
-    private boolean shouldPropagate = false;
+    private HashMap<String, byte[]> data = new HashMap<>();
+    private Meta meta = new Meta();
 
     public static void register(Class<?> type) {
         serializer.register(type);
@@ -59,10 +62,5 @@ public class DataBundle {
 
     public boolean remove(String key) {
         return data.remove(key) != null;
-    }
-
-    public DataBundle propagate() {
-        shouldPropagate = true;
-        return this;
     }
 }

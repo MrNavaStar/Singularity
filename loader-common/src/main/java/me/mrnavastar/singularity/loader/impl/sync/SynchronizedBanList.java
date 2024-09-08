@@ -5,7 +5,7 @@ import lombok.SneakyThrows;
 import me.mrnavastar.r.R;
 import me.mrnavastar.singularity.common.Constants;
 import me.mrnavastar.singularity.common.networking.DataBundle;
-import me.mrnavastar.singularity.loader.Dead;
+import me.mrnavastar.singularity.loader.impl.Broker;
 import me.mrnavastar.singularity.loader.util.Mappings;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.players.*;
@@ -23,7 +23,7 @@ public class SynchronizedBanList extends UserBanList {
     @Override
     public void add(UserBanListEntry entry) {
         GameProfile profile = R.of(entry).get("user", GameProfile.class);
-        Dead.putPlayerTopic(profile.getId(), Constants.BANNED_PLAYERS, new DataBundle()
+        Broker.putPlayerTopic(profile.getId(), Constants.BANNED_PLAYERS, new DataBundle()
                 .put("created", entry.getCreated())
                 .put("source", entry.getSource())
                 .put("expires", entry.getExpires())
@@ -32,13 +32,13 @@ public class SynchronizedBanList extends UserBanList {
 
     @Override
     public void remove(GameProfile profile) {
-        Dead.removePlayerTopic(profile.getId(), Constants.BANNED_PLAYERS);
+        Broker.removePlayerTopic(profile.getId(), Constants.BANNED_PLAYERS);
     }
 
     @Override
     @SneakyThrows
     public @Nullable UserBanListEntry get(GameProfile profile) {
-        return Dead.getPlayerTopic(profile.getId(), Constants.BANNED_PLAYERS).get()
+        return Broker.getPlayerTopic(profile.getId(), Constants.BANNED_PLAYERS).get()
                 .map(data -> {
                     Date created = data.get("created", Date.class).orElse(null);
                     String source = data.get("source", String.class).orElse(null);
@@ -51,7 +51,7 @@ public class SynchronizedBanList extends UserBanList {
     @Override
     @SneakyThrows
     protected boolean contains(GameProfile profile) {
-        return Dead.getPlayerTopic(profile.getId(), Constants.BANNED_PLAYERS).get().isPresent();
+        return Broker.getPlayerTopic(profile.getId(), Constants.BANNED_PLAYERS).get().isPresent();
     }
 
     // Bye bye
