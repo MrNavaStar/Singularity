@@ -30,7 +30,7 @@ public class UserCache {
     }
 
     public static Profile getUserByName(Profile profile) {
-        return getUser("name", profile.getName(), profile);
+        return getUser("name", profile.getName().toLowerCase(Locale.ROOT), profile);
     }
 
     public static Profile getUserByUUID(Profile profile) {

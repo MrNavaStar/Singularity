@@ -1,23 +1,43 @@
 package me.mrnavastar.singularity.common.networking;
 
-import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
+
 import lombok.Getter;
+import lombok.Setter;
+import lombok.experimental.Accessors;
 import me.mrnavastar.protoweaver.core.util.ObjectSerializer;
 
 import java.util.HashMap;
 import java.util.Optional;
 import java.util.UUID;
 
+@Accessors(fluent = true)
+@Setter
 @Getter
 @EqualsAndHashCode
-@AllArgsConstructor
 public class DataBundle {
-    private UUID id;
+
+    public enum Action {
+        PUT,
+        GET,
+        REMOVE,
+        NONE
+    }
+
+    @Setter
+    @Getter
+    @EqualsAndHashCode
+    public static class Meta {
+        private UUID id;
+        private Action action = Action.NONE;
+        private Topic topic;
+        private boolean propagate = false;
+    }
 
     private static final ObjectSerializer serializer = new ObjectSerializer();
 
-    private final HashMap<String, byte[]> data = new HashMap<>();
+    private HashMap<String, byte[]> data = new HashMap<>();
+    private Meta meta = new Meta();
 
     public static void register(Class<?> type) {
         serializer.register(type);
@@ -29,9 +49,9 @@ public class DataBundle {
     }
 
     public <T> Optional<T> get(String key, Class<T> type) {
-        byte [] data = this.data.get(key);
-        if (data == null) return Optional.empty();
-        return Optional.of(type.cast(serializer.deserialize(data)));
+        return Optional.ofNullable(this.data.get(key))
+                .flatMap(data -> Optional.ofNullable(serializer.deserialize(data))
+                        .flatMap(o -> Optional.of(type.cast(o))));
     }
 
     public boolean remove(String key) {

@@ -1,7 +1,6 @@
 package me.mrnavastar.singularity.loader.impl;
 
 import me.mrnavastar.r.R;
-import me.mrnavastar.singularity.loader.Singularity;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.players.*;
 

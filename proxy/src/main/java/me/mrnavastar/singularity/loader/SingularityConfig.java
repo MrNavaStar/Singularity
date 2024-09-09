@@ -16,8 +16,8 @@ import java.util.*;
 public class SingularityConfig {
 
     private static final HashMap<ProtoServer, String> groups = new HashMap<>();
-    private static final HashMap<String, DataStore> groupStores = new HashMap<>();
     private static final HashMap<ProtoServer, Settings> settings = new HashMap<>();
+    private static final HashMap<String, DataStore> groupStores = new HashMap<>();
     private static final ArrayList<String> blacklists = new ArrayList<>();
 
     static {
@@ -36,17 +36,13 @@ public class SingularityConfig {
         return Optional.ofNullable(settings.get(server));
     }
 
-    public static boolean inSameGroup(ProtoServer server1, ProtoServer server2) {
-        return Objects.equals(groups.get(server1), groups.get(server2));
-    }
-
     public static Optional<DataStore> getServerStore(ProtoServer server) {
         return Optional.ofNullable(groups.get(server)).map(groupStores::get);
     }
 
     public static List<ProtoServer> getSameGroup(ProtoServer server) {
          return Optional.ofNullable(groups.get(server))
-                 .map(mainGroup -> groups.entrySet().stream().filter(entry -> entry.getValue().equals(mainGroup))
+                 .map(mainGroup -> groups.entrySet().stream().filter(entry -> entry.getValue().equals(mainGroup) && !entry.getKey().equals(server))
                     .map(Map.Entry::getKey).toList()).orElseGet(ArrayList::new);
     }
 

@@ -1,7 +1,10 @@
 package me.mrnavastar.singularity.common.networking;
 
+import lombok.ToString;
+
 import java.util.HashSet;
 
+@ToString
 public class Settings {
     public boolean syncPlayerData = false;
     public boolean syncPlayerStats = false;

@@ -5,7 +5,7 @@ import com.mojang.authlib.GameProfileRepository;
 import lombok.SneakyThrows;
 import me.mrnavastar.r.R;
 import me.mrnavastar.singularity.common.networking.Profile;
-import me.mrnavastar.singularity.loader.Singularity;
+import me.mrnavastar.singularity.loader.impl.Broker;
 import me.mrnavastar.singularity.loader.util.Mappings;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.Services;
@@ -26,8 +26,8 @@ public class SynchronizedUserCache extends GameProfileCache {
     }
 
     private static String getKey(Profile profile) {
-        if (profile.getName() == null || profile.getProperty().equals(Profile.Property.UUID_LOOKUP)) return profile.getUuid().toString();
-        if (profile.getUuid() == null || profile.getProperty().equals(Profile.Property.NAME_LOOKUP)) return profile.getName();
+        if (profile.getUuid() != null && profile.getProperty().equals(Profile.Property.UUID_LOOKUP)) return profile.getUuid().toString();
+        if (profile.getName() != null && profile.getProperty().equals(Profile.Property.NAME_LOOKUP)) return profile.getName().toLowerCase(Locale.ROOT);
         return null;
     }
 
@@ -36,7 +36,7 @@ public class SynchronizedUserCache extends GameProfileCache {
         if (key != null) return Optional.ofNullable(requests.get(key)).orElseGet(() -> {
             CompletableFuture<Optional<GameProfile>> future = new CompletableFuture<>();
             requests.put(key, future);
-            Singularity.send(profile);
+            Broker.getProxy().send(profile);
             return future;
         });
         return null;

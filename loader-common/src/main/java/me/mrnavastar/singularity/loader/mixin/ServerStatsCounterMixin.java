@@ -1,6 +1,6 @@
 package me.mrnavastar.singularity.loader.mixin;
 
-import me.mrnavastar.singularity.loader.Singularity;
+import me.mrnavastar.singularity.loader.impl.Broker;
 import net.minecraft.stats.ServerStatsCounter;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -12,6 +12,6 @@ public class ServerStatsCounterMixin {
 
     @Inject(method = "save", at = @At("HEAD"), cancellable = true)
     private void save(CallbackInfo ci) {
-        if (Singularity.getSettings().syncPlayerStats) ci.cancel();
+        if (Broker.getSettings().syncPlayerStats) ci.cancel();
     }
 }

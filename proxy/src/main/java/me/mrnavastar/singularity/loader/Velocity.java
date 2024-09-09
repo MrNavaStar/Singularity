@@ -16,6 +16,7 @@ import me.mrnavastar.protoweaver.proxy.api.ProtoServer;
 import me.mrnavastar.singularity.common.Constants;
 import me.mrnavastar.singularity.common.networking.DataBundle;
 import me.mrnavastar.singularity.common.networking.Profile;
+import me.mrnavastar.singularity.common.networking.Topic;
 import me.mrnavastar.sqlib.api.types.JavaTypes;
 import me.mrnavastar.sqlib.api.types.SQLibType;
 import me.mrnavastar.sqlib.impl.SQLPrimitive;
@@ -37,7 +38,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class Velocity implements ProtoConnectionHandler {
 
     private static final Gson GSON = new Gson();
-    private static final SQLibType<DataBundle> PLAYER_DATA = new SQLibType<>(SQLPrimitive.STRING, v -> GSON.toJsonTree(v).toString(), v -> GSON.fromJson(v, DataBundle.class));
+    private static final SQLibType<DataBundle> DATA_BUNDLE = new SQLibType<>(SQLPrimitive.STRING, v -> GSON.toJsonTree(v).toString(), v -> GSON.fromJson(v, DataBundle.class));
+    private static final HashMap<ProtoServer, HashSet<Topic>> subs = new HashMap<>();
     private static final ConcurrentHashMap<UUID, ProtoServer> playerLocations = new ConcurrentHashMap<>();
     private static final Protocol WORMHOLE = Constants.WORMHOLE.setClientHandler(Velocity.class).load();
 
@@ -60,20 +62,17 @@ public class Velocity implements ProtoConnectionHandler {
     public void onServerPreConnect(ServerPreConnectEvent event) {
         UUID player = event.getPlayer().getUniqueId();
         event.getResult().getServer().flatMap(current -> ProtoProxy.getConnectedServer(WORMHOLE, current.getServerInfo().getName())).ifPresent(server -> {
-            if (event.getPreviousServer() == null) SingularityConfig.getServerStore(server)
-                    .flatMap(store -> store.getContainer("id", player)
-                    .flatMap(c -> c.get(PLAYER_DATA, "data")))
-                    .ifPresent(data -> server.getConnection().send(data));
+            if (event.getPreviousServer() == null) {
+                Topic topic = new Topic(Topic.TopicType.PLAYER, Constants.PLAYER_TOPIC);
+                SingularityConfig.getServerStore(server)
+                        .flatMap(store -> store.getContainer("uuid", player))
+                        .flatMap(c -> c.get(DATA_BUNDLE, topic.databaseKey()))
+                        .map(data -> data.meta(new DataBundle.Meta().id(player).topic(topic).action(DataBundle.Action.PUT)))
+                        .ifPresent(data -> server.getConnection().send(data));
+            }
             else playerLocations.put(player, server);
         });
     }
-
-    /*@Subscribe
-    public void onCommand(CommandExecuteEvent event) {
-        event.getCommandSource()
-
-        if (event.getCommand().contains("whitelist")) event.setResult(CommandExecuteEvent.CommandResult.denied());
-    }*/
 
     @Override
     public void onReady(ProtoConnection connection) {
@@ -83,44 +82,57 @@ public class Velocity implements ProtoConnectionHandler {
         });
     }
 
-    private void sendProperty(ProtoConnection connection, Profile profile, String property) {
-        SingularityConfig.getServerStore(server)
-                .flatMap(store -> store.getContainer("player", profile.getUuid()))
-                .flatMap(data -> data.get(JavaTypes.BOOL, property))
-                .ifPresentOrElse(prop -> {
-                    connection.send(profile.setPropertyValue(prop));
-                }, () -> connection.send(profile.setPropertyValue(false)));
-    }
-
     @Override
     public void handlePacket(ProtoConnection connection, Object packet) {
         switch (packet) {
-            case DataBundle data -> {
-                Optional.ofNullable(playerLocations.get(data.getId())).ifPresent(nextServer -> {
-                    if (SingularityConfig.inSameGroup(server, nextServer)) nextServer.getConnection().send(data);
-                });
+            case Topic sub -> {
+                HashSet<Topic> topics = subs.getOrDefault(server, new HashSet<>());
+                topics.add(sub);
+                subs.put(server, topics);
+            }
 
-                if (data.getId().equals(Constants.STATIC_DATA)) {
-                    System.out.println(data.get(Constants.OPERATORS, Profile.class));
-                    return;
+            case DataBundle.Meta meta -> {
+                switch (meta.action()) {
+                    case GET -> SingularityConfig.getServerStore(server)
+                            .flatMap(store -> store.getContainer("uuid", meta.id()))
+                            .flatMap(c -> c.get(DATA_BUNDLE, meta.topic().topic().replace(":", "_")))
+                            .ifPresentOrElse(data -> connection.send(data.meta(meta)), () -> connection.send(meta));
+
+                    case REMOVE -> SingularityConfig.getServerStore(server)
+                            .flatMap(store -> store.getContainer("uuid", meta.id()))
+                            .ifPresent(c -> c.clear(meta.topic().databaseKey()));
                 }
+            }
 
-                SingularityConfig.getServerStore(server).ifPresent(store -> store.getOrCreateContainer("id", data.getId(), container -> container.put(JavaTypes.UUID, "id", data.getId()))
-                        .put(PLAYER_DATA, "data", data));
+            case DataBundle data -> {
+                if (!DataBundle.Action.PUT.equals(data.meta().action())) return;
+
+                // TODO: Perhaps change how data is propagated - currently player data will only send to the server the
+                //  player is going to be on. Should this be different?
+                // Forward data to subscribed servers
+                SingularityConfig.getSameGroup(server).stream()
+                        .filter(s ->  {
+                            if (data.meta().propagate() || !data.meta().topic().type().equals(Topic.TopicType.PLAYER)) return true;
+                            Optional<ProtoServer> location = Optional.ofNullable(playerLocations.get(data.meta().id()));
+                            return location.isPresent() && location.get().equals(s);
+                        })
+                        .filter(s -> subs.getOrDefault(s, new HashSet<>()).contains(data.meta().topic()))
+                        .forEach(s -> s.getConnection().send(data));
+
+                // Store data in database
+                SingularityConfig.getServerStore(server)
+                        .ifPresent(store -> store.getOrCreateContainer("uuid", data.meta().id(), c -> c.put(JavaTypes.UUID, "uuid", data.meta().id()))
+                                .put(DATA_BUNDLE, data.meta().topic().databaseKey(), data));
             }
 
             case Profile profile -> {
                 switch (profile.getProperty()) {
                     case UUID_LOOKUP -> connection.send(UserCache.getUserByUUID(profile));
                     case NAME_LOOKUP -> connection.send(UserCache.getUserByName(profile));
-
-                    case OP -> sendProperty(connection, profile.setProperty(Profile.Property.OP), "op");
-                    case WHITELISTED -> sendProperty(connection, profile.setProperty(Profile.Property.WHITELISTED), "whitelist");
-                    case BANNED -> sendProperty(connection, profile.setProperty(Profile.Property.BANNED), "banned");
                 }
             }
 
-            default -> throw new IllegalStateException("Unexpected value: " + packet);
+            default -> WORMHOLE.logWarn("Ignoring unknown packet: " + packet);
         }
     }
 }

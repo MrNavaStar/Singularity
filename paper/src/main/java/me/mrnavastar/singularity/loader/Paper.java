@@ -1,9 +1,11 @@
 package me.mrnavastar.singularity.loader;
 
+import com.destroystokyo.paper.event.server.WhitelistToggleEvent;
+import me.mrnavastar.protoweaver.api.ProtoWeaver;
 import me.mrnavastar.singularity.common.Constants;
-import me.mrnavastar.singularity.common.networking.DataBundle;
-import me.mrnavastar.singularity.common.networking.Settings;
-import me.mrnavastar.singularity.loader.api.SyncEvents;
+import me.mrnavastar.singularity.loader.impl.Broker;
+import me.mrnavastar.singularity.loader.impl.sync.SynchronizedMinecraft;
+import me.mrnavastar.singularity.loader.impl.sync.SynchronizedWhiteList;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
@@ -21,10 +23,10 @@ public class Paper extends JavaPlugin {
 
     private final Logger logger = getLogger();
 
-    public static class EventListener extends Singularity implements Listener {
+    public static class EventListener extends SynchronizedMinecraft implements Listener {
 
         public EventListener() {
-            server = MinecraftServer.getServer();
+            init(MinecraftServer.getServer());
         }
 
         @EventHandler
@@ -32,40 +34,35 @@ public class Paper extends JavaPlugin {
             syncPlayerData();
         }
 
-        /*@EventHandler
+        @EventHandler
         public void onToggle(WhitelistToggleEvent event) {
-            syncServerData();
-        }*/
+            SynchronizedWhiteList.setEnabled(event.isEnabled());
+        }
 
         @EventHandler
         public void onPlayerJoin(PlayerJoinEvent event) {
-            onJoin(((CraftPlayer) event.getPlayer()).getHandle());
+            ServerPlayer player = ((CraftPlayer) event.getPlayer()).getHandle();
+            onJoin(player);
+            player.valid = !player.valid;
         }
 
         @EventHandler
         public void onPlayerQuit(PlayerQuitEvent event) {
             onLeave(((CraftPlayer) event.getPlayer()).getHandle());
         }
-
-        @Override
-        protected void processData(ServerPlayer player, DataBundle data) {
-            player.valid = false;
-            SyncEvents.RECEIVE_DATA.getInvoker().trigger(player, data);
-            player.valid = true;
-        }
-
-        @Override
-        protected void processSettings(Settings settings) {
-            SpigotConfig.disablePlayerDataSaving = settings.syncPlayerData;
-            SpigotConfig.disableStatSaving = settings.syncPlayerStats;
-            SpigotConfig.disableAdvancementSaving = settings.syncPlayerAdvancements;
-        }
     }
 
     @Override
     public void onEnable() {
         logger.info(Constants.SINGULARITY_BOOT_MESSAGE);
-        Constants.WORMHOLE.setServerHandler(EventListener.class).load();
+        ProtoWeaver.load(Broker.PROTOCOL);
         getServer().getPluginManager().registerEvents(new EventListener(), this);
+
+        SynchronizedMinecraft.setPlayerCallback(player -> player.valid = !player.valid);
+        Broker.setSettingsCallback(settings -> {
+            SpigotConfig.disablePlayerDataSaving = settings.syncPlayerData;
+            SpigotConfig.disableStatSaving = settings.syncPlayerStats;
+            SpigotConfig.disableAdvancementSaving = settings.syncPlayerAdvancements;
+        });
     }
 }
