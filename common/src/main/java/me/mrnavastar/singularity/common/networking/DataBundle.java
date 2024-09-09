@@ -29,15 +29,9 @@ public class DataBundle {
     @EqualsAndHashCode
     public static class Meta {
         private UUID id;
-        private String topic;
         private Action action = Action.NONE;
-        private Subscription.TopicType topicType;
+        private Topic topic;
         private boolean propagate = false;
-
-        @Override
-        public String toString() {
-            return topic + ":" + id;
-        }
     }
 
     private static final ObjectSerializer serializer = new ObjectSerializer();

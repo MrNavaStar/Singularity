@@ -6,7 +6,7 @@ import me.mrnavastar.protoweaver.api.protocol.velocity.VelocityAuth;
 import me.mrnavastar.singularity.common.networking.DataBundle;
 import me.mrnavastar.singularity.common.networking.Settings;
 import me.mrnavastar.singularity.common.networking.Profile;
-import me.mrnavastar.singularity.common.networking.Subscription;
+import me.mrnavastar.singularity.common.networking.Topic;
 
 import java.util.UUID;
 
@@ -26,7 +26,7 @@ public class Constants {
             .setMaxConnections(1)
             .addPacket(Settings.class)
             .addPacket(DataBundle.class)
-            .addPacket(Subscription.class)
+            .addPacket(Topic.class)
             .addPacket(Profile.class);
 
     public static final UUID STATIC_DATA = new UUID(0, 0);

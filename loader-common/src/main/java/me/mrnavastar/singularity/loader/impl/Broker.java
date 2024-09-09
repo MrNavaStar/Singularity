@@ -10,22 +10,23 @@ import me.mrnavastar.singularity.common.Constants;
 import me.mrnavastar.singularity.common.networking.DataBundle;
 import me.mrnavastar.singularity.common.networking.Profile;
 import me.mrnavastar.singularity.common.networking.Settings;
-import me.mrnavastar.singularity.common.networking.Subscription;
+import me.mrnavastar.singularity.common.networking.Topic;
 import me.mrnavastar.singularity.loader.impl.sync.SynchronizedMinecraft;
 import me.mrnavastar.singularity.loader.impl.sync.SynchronizedUserCache;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class Broker implements ProtoConnectionHandler {
 
     public static final Protocol PROTOCOL = Constants.WORMHOLE.setServerHandler(Broker.class).build();
+
     private static final ConcurrentHashMap<DataBundle.Meta, CompletableFuture<Optional<DataBundle>>> requests = new ConcurrentHashMap<>();
-    private static final ConcurrentHashMap<String, ArrayList<BiConsumer<UUID, DataBundle>>> callbacks = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<Topic, HashSet<Consumer<DataBundle>>> subs = new ConcurrentHashMap<>();
     @Setter private static Consumer<Settings> settingsCallback;
+
     @Getter private static Settings settings = new Settings();
     @Getter private static ProtoConnection proxy;
 
@@ -34,15 +35,19 @@ public class Broker implements ProtoConnectionHandler {
         if (names.length < 2) throw new IllegalArgumentException("Invalid Topic! Topic names should be namespaced: 'namespace:field`");
     }
 
+    private static void syncSubs() {
+        if (proxy == null || !proxy.isOpen()) return;
+        subs.forEach((sub, callbacks) -> proxy.send(sub));
+    }
+
     public static void putPlayerTopic(UUID player, String topic, DataBundle bundle) {
         validateNamespace(topic);
 
         if (proxy == null || !proxy.isOpen()) return;
         bundle.meta()
                 .id(player)
-                .topic(topic)
-                .action(DataBundle.Action.PUT)
-                .topicType(player.equals(Constants.STATIC_DATA) ? Subscription.TopicType.STATIC : Subscription.TopicType.PLAYER);
+                .topic(new Topic(player.equals(Constants.STATIC_DATA) ? Topic.TopicType.STATIC : Topic.TopicType.PLAYER, topic))
+                .action(DataBundle.Action.PUT);
         proxy.send(bundle);
     }
 
@@ -54,9 +59,8 @@ public class Broker implements ProtoConnectionHandler {
         if (proxy == null || !proxy.isOpen()) return;
         proxy.send(new DataBundle.Meta()
                 .id(player)
-                .topic(topic)
-                .action(DataBundle.Action.REMOVE)
-                .topicType(player.equals(Constants.STATIC_DATA) ? Subscription.TopicType.STATIC : Subscription.TopicType.PLAYER));
+                .topic(new Topic(player.equals(Constants.STATIC_DATA) ? Topic.TopicType.STATIC : Topic.TopicType.PLAYER, topic))
+                .action(DataBundle.Action.REMOVE));
     }
 
     public static void removeStaticTopic(String topic) {
@@ -66,9 +70,8 @@ public class Broker implements ProtoConnectionHandler {
     public static CompletableFuture<Optional<DataBundle>> getPlayerTopic(UUID player, String topic) {
         DataBundle.Meta meta = new DataBundle.Meta()
                 .id(player)
-                .topic(topic)
-                .action(DataBundle.Action.GET)
-                .topicType(player.equals(Constants.STATIC_DATA) ? Subscription.TopicType.STATIC : Subscription.TopicType.PLAYER);
+                .topic(new Topic(player.equals(Constants.STATIC_DATA) ? Topic.TopicType.STATIC : Topic.TopicType.PLAYER, topic))
+                .action(DataBundle.Action.GET);
 
         return Optional.ofNullable(requests.get(meta)).orElseGet(() -> {
             CompletableFuture<Optional<DataBundle>> future = new CompletableFuture<>();
@@ -86,27 +89,27 @@ public class Broker implements ProtoConnectionHandler {
         return getPlayerTopic(Constants.STATIC_DATA, topic);
     }
 
-    private static void subTopic(Subscription.TopicType type, String topic, BiConsumer<UUID, DataBundle> handler) {
+    private static void subTopic(Topic.TopicType type, String topic, Consumer<DataBundle> handler) {
         validateNamespace(topic);
 
-        if (proxy == null || !proxy.isOpen()) return;
-        Subscription subscription = new Subscription(type, topic);
-        ArrayList<BiConsumer<UUID, DataBundle>> handlers = callbacks.getOrDefault(subscription.toString(), new ArrayList<>());
+        Topic subscription = new Topic(type, topic);
+        HashSet<Consumer<DataBundle>> handlers = subs.getOrDefault(subscription, new HashSet<>());
         handlers.add(handler);
-        callbacks.put(subscription.toString(), handlers);
-        proxy.send(subscription);
+        subs.put(subscription, handlers);
+        syncSubs();
     }
 
-    public static void subPlayerTopic(String topic, BiConsumer<UUID, DataBundle> handler) {
-        subTopic(Subscription.TopicType.PLAYER, topic, handler);
+    public static void subPlayerTopic(String topic, Consumer<DataBundle> handler) {
+        subTopic(Topic.TopicType.PLAYER, topic, handler);
     }
 
     public static void subStaticTopic(String topic, Consumer<DataBundle> handler) {
-        subTopic(Subscription.TopicType.STATIC, topic, (uuid, bundle) -> handler.accept(bundle));
+        subTopic(Topic.TopicType.STATIC, topic, handler);
     }
 
     public void onReady(ProtoConnection protoConnection) {
         proxy = protoConnection;
+        syncSubs();
     }
 
     @Override
@@ -118,7 +121,7 @@ public class Broker implements ProtoConnectionHandler {
                 if (data.meta().action().equals(DataBundle.Action.NONE))
                     Optional.ofNullable(requests.remove(data.meta())).ifPresent(request -> request.complete(Optional.of(data)));
 
-                else callbacks.getOrDefault(data.meta().toString(), new ArrayList<>()).forEach(consumer -> consumer.accept(data.meta().id(), data));
+                else subs.getOrDefault(data.meta().topic(), new HashSet<>()).forEach(consumer -> consumer.accept(data));
             }
 
             //TODO: Would be nice to move this into a global topic, but we would need to implement global topics in

@@ -42,7 +42,7 @@ public class SingularityConfig {
 
     public static List<ProtoServer> getSameGroup(ProtoServer server) {
          return Optional.ofNullable(groups.get(server))
-                 .map(mainGroup -> groups.entrySet().stream().filter(entry -> entry.getValue().equals(mainGroup))
+                 .map(mainGroup -> groups.entrySet().stream().filter(entry -> entry.getValue().equals(mainGroup) && !entry.getKey().equals(server))
                     .map(Map.Entry::getKey).toList()).orElseGet(ArrayList::new);
     }
 
