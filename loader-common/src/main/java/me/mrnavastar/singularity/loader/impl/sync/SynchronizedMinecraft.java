@@ -56,10 +56,8 @@ public class SynchronizedMinecraft {
         reloadBlacklists();
 
         // Listen for player data from velocity
-        Broker.subPlayerTopic(Constants.PLAYER_TOPIC, data -> {
-            Optional.ofNullable(server.getPlayerList().getPlayer(data.meta().id()))
-                    .ifPresentOrElse(player -> processData(player, data), () -> incoming.put(data.meta().id(), data));
-        });
+        Broker.subPlayerTopic(Constants.PLAYER_TOPIC, data -> Optional.ofNullable(server.getPlayerList().getPlayer(data.meta().id()))
+                .ifPresentOrElse(player -> processData(player, data), () -> incoming.put(data.meta().id(), data)));
 
         // Get current whitelist state and listen for future changes
         Broker.getStaticTopic(Constants.WHITELIST).whenComplete((bundle, throwable) -> bundle.ifPresent(data -> SynchronizedWhiteList.ENABLED.accept(server, data)));

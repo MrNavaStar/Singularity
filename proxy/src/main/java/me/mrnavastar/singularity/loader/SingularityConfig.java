@@ -55,7 +55,7 @@ public class SingularityConfig {
     public static void load(Logger logger) {
         try {
             Yaml yaml = new Yaml();
-            Map<String, Object> map = yaml.load(new FileInputStream("plugins/singularity/singularity.yaml"));
+            Map<String, Object> map = yaml.load(new FileInputStream("config/singularity.yaml"));
 
             Optional.ofNullable(map.get("groups")).ifPresent(o1 -> {
                 if (!(o1 instanceof Map g)) return;
