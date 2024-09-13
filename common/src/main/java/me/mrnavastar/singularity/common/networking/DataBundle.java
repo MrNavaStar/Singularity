@@ -4,6 +4,7 @@ import lombok.EqualsAndHashCode;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 import lombok.experimental.Accessors;
 import me.mrnavastar.protoweaver.core.util.ObjectSerializer;
 
@@ -14,6 +15,7 @@ import java.util.UUID;
 @Accessors(fluent = true)
 @Setter
 @Getter
+@ToString
 @EqualsAndHashCode
 public class DataBundle {
 
@@ -26,6 +28,7 @@ public class DataBundle {
 
     @Setter
     @Getter
+    @ToString
     @EqualsAndHashCode
     public static class Meta {
         private UUID id;
