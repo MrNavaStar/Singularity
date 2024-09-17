@@ -66,9 +66,12 @@ public class SingularityConfig {
                     Optional.ofNullable(map.get(groupName)).ifPresent(o2 -> {
                         if (!(o2 instanceof Map s)) return;
 
-                        Settings groupSettings = new Settings();
+                        Settings groupSettings = new Settings().setDefault();
                         blacklists.forEach(blacklist -> {
-                            if (s.get(blacklist) instanceof Boolean enabled && !enabled) groupSettings.nbtBlacklists.add(blacklist);
+                            if (s.get(blacklist) instanceof Boolean enabled) {
+                                if (enabled) groupSettings.nbtBlacklists.remove(blacklist);
+                                else groupSettings.nbtBlacklists.add(blacklist);
+                            }
                         });
 
                         if (s.get("singularity.player") instanceof Boolean enabled) groupSettings.syncPlayerData = enabled;
@@ -95,5 +98,8 @@ public class SingularityConfig {
                 groups.put(server, "default");
             });
         }
+
+        System.out.println(groups);
+        System.out.println(settings);
     }
 }
