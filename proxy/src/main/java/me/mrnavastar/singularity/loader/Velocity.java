@@ -9,6 +9,7 @@ import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.plugin.Dependency;
 import com.velocitypowered.api.plugin.Plugin;
 import me.mrnavastar.protoweaver.api.ProtoConnectionHandler;
+import me.mrnavastar.protoweaver.api.ProtoWeaver;
 import me.mrnavastar.protoweaver.api.netty.ProtoConnection;
 import me.mrnavastar.protoweaver.api.protocol.Protocol;
 import me.mrnavastar.protoweaver.proxy.api.ProtoProxy;
@@ -38,10 +39,11 @@ import java.util.concurrent.ConcurrentHashMap;
 public class Velocity implements ProtoConnectionHandler {
 
     private static final Gson GSON = new Gson();
+    private static final Protocol WORMHOLE = Constants.WORMHOLE.setClientHandler(Velocity.class).build();
     private static final SQLibType<DataBundle> DATA_BUNDLE = new SQLibType<>(SQLPrimitive.STRING, v -> GSON.toJsonTree(v).toString(), v -> GSON.fromJson(v, DataBundle.class));
+
     private static final HashMap<ProtoServer, HashSet<Topic>> subs = new HashMap<>();
     private static final ConcurrentHashMap<UUID, ProtoServer> playerLocations = new ConcurrentHashMap<>();
-    private static final Protocol WORMHOLE = Constants.WORMHOLE.setClientHandler(Velocity.class).load();
 
     @Inject
     private Logger logger;
@@ -51,6 +53,7 @@ public class Velocity implements ProtoConnectionHandler {
     public void onProxyInitialization(ProxyInitializeEvent event) {
         logger.info(Constants.SINGULARITY_BOOT_MESSAGE);
         SingularityConfig.load(logger);
+        ProtoWeaver.load(WORMHOLE);
     }
 
     @Subscribe
@@ -76,7 +79,7 @@ public class Velocity implements ProtoConnectionHandler {
 
     @Override
     public void onReady(ProtoConnection connection) {
-        ProtoProxy.getConnectedServer(WORMHOLE, connection.getRemoteAddress()).ifPresent(s -> {
+        ProtoProxy.getRegisteredServer(connection.getRemoteAddress()).ifPresent(s -> {
             server = s;
             SingularityConfig.getServerSettings(server).ifPresent(connection::send);
         });

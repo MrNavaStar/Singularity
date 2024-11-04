@@ -83,6 +83,6 @@ public class SynchronizedUserCache extends GameProfileCache {
         String mapping = Mappings.of("services", "field_39440");
         Services services = R.of(server).get(mapping, Services.class);
         R.of(server).set(mapping, new Services(services.sessionService(), services.servicesKeySet(), services.profileRepository(),
-                new SynchronizedUserCache(services.profileRepository(), R.of(services.profileCache()).get("file", File.class))));
+                new SynchronizedUserCache(services.profileRepository(), R.of(services.profileCache()).get(Mappings.of("file", "field_14314"), File.class))));
     }
 }

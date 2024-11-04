@@ -55,7 +55,7 @@ public class SingularityConfig {
     public static void load(Logger logger) {
         try {
             Yaml yaml = new Yaml();
-            Map<String, Object> map = yaml.load(new FileInputStream("plugins/singularity/singularity.yaml"));
+            Map<String, Object> map = yaml.load(new FileInputStream("config/singularity.yaml"));
 
             Optional.ofNullable(map.get("groups")).ifPresent(o1 -> {
                 if (!(o1 instanceof Map g)) return;
@@ -66,9 +66,12 @@ public class SingularityConfig {
                     Optional.ofNullable(map.get(groupName)).ifPresent(o2 -> {
                         if (!(o2 instanceof Map s)) return;
 
-                        Settings groupSettings = new Settings();
+                        Settings groupSettings = new Settings().setDefault();
                         blacklists.forEach(blacklist -> {
-                            if (s.get(blacklist) instanceof Boolean enabled && !enabled) groupSettings.nbtBlacklists.add(blacklist);
+                            if (s.get(blacklist) instanceof Boolean enabled) {
+                                if (enabled) groupSettings.nbtBlacklists.remove(blacklist);
+                                else groupSettings.nbtBlacklists.add(blacklist);
+                            }
                         });
 
                         if (s.get("singularity.player") instanceof Boolean enabled) groupSettings.syncPlayerData = enabled;
@@ -95,5 +98,8 @@ public class SingularityConfig {
                 groups.put(server, "default");
             });
         }
+
+        System.out.println(groups);
+        System.out.println(settings);
     }
 }

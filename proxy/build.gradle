@@ -1,6 +1,5 @@
 plugins {
     id "xyz.jpenilla.run-velocity" version "2.3.1"
-    id "io.github.goooler.shadow" version "8.1.8"
 }
 
 configurations {
@@ -17,27 +16,19 @@ dependencies {
     implementation "maven.modrinth:sqlib:${project.sqlib_version}"
 }
 
-shadowJar {
-    archiveClassifier = ""
-    configurations = [project.configurations.zip]
-    relocate "org.apache.fury", "me.mrnavastar.protoweaver.libs.org.apache.fury"
-}
-
-jar.finalizedBy(shadowJar)
-
-/*jar {
+jar {
     from {
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
         configurations.zip.collect { it.isDirectory() ? it : zipTree(it) }
     }
-}*/
+}
 
 tasks {
     runVelocity {
         velocityVersion(project.velocity_version)
         downloadPlugins {
-            url("https://maven.mrnavastar.rocks/releases/me/mrnavastar/protoweaver/proxy/${project.protoweaver_version}/proxy-${project.protoweaver_version}.jar")
-            url("https://cdn.modrinth.com/data/IM84wwxs/versions/4NhFtj3f/sqlib-3.2.1.jar")
+            url("https://maven.mrnavastar.me/releases/me/mrnavastar/protoweaver/proxy/${project.protoweaver_version}/proxy-${project.protoweaver_version}.jar")
+            url("https://cdn.modrinth.com/data/IM84wwxs/versions/2YOzAZVH/sqlib-3.2.3.jar")
         }
     }
 }
