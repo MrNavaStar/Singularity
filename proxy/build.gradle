@@ -27,8 +27,8 @@ tasks {
     runVelocity {
         velocityVersion(project.velocity_version)
         downloadPlugins {
-            url("https://maven.mrnavastar.rocks/releases/me/mrnavastar/protoweaver/proxy/${project.protoweaver_version}/proxy-${project.protoweaver_version}.jar")
-            url("https://cdn.modrinth.com/data/IM84wwxs/versions/4NhFtj3f/sqlib-3.2.1.jar")
+            url("https://maven.mrnavastar.me/releases/me/mrnavastar/protoweaver/proxy/${project.protoweaver_version}/proxy-${project.protoweaver_version}.jar")
+            url("https://cdn.modrinth.com/data/IM84wwxs/versions/2YOzAZVH/sqlib-3.2.3.jar")
         }
     }
 }
