@@ -132,6 +132,7 @@ public class SynchronizedMinecraft {
 
     protected static DataBundle createPlayerDataBundle(ServerPlayer player) {
         DataBundle data = new DataBundle();
+        data.meta().propagation(DataBundle.Propagation.NEXT_SERVER);
         Singularity.SEND_DATA.getInvoker().trigger(player, data);
         return data;
     }
@@ -161,6 +162,7 @@ public class SynchronizedMinecraft {
     }
 
     protected static void onJoin(ServerPlayer player) {
+        SynchronizedGameProfileRepository.saveProfile(player.getGameProfile());
         DataBundle data = incoming.remove(player.getUUID());
         if (data != null) processData(player, data);
     }

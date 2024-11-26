@@ -7,11 +7,14 @@ import me.mrnavastar.singularity.common.Constants;
 import me.mrnavastar.singularity.common.networking.DataBundle;
 import me.mrnavastar.singularity.loader.impl.Broker;
 import me.mrnavastar.singularity.loader.util.Mappings;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.players.*;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
+import java.util.Optional;
+import java.util.UUID;
 
 public class SynchronizedWhiteList extends UserWhiteList {
 
@@ -20,7 +23,10 @@ public class SynchronizedWhiteList extends UserWhiteList {
     }
 
     public static void setEnabled(boolean enabled) {
-        Broker.putTopic(Constants.WHITELIST, "enabled", new DataBundle().put("enabled", enabled));
+        Broker.putTopic(Constants.WHITELIST, "enabled", new DataBundle()
+                .meta(new DataBundle.Meta().propagation(DataBundle.Propagation.ALL))
+                .put("enabled", enabled)
+        );
     }
 
     @Override
@@ -68,10 +74,17 @@ public class SynchronizedWhiteList extends UserWhiteList {
     }
 
     public static void install(MinecraftServer server) {
-        Broker.subTopic(Constants.WHITELIST, bundle -> {
-            if (!bundle.meta().id().equals("enabled")) return;
-            server.setEnforceWhitelist(bundle.get("enabled", boolean.class).orElse(false));
-        });
         R.of(server.getPlayerList()).set(Mappings.of("whitelist", "field_14361"), new SynchronizedWhiteList());
+        Broker.subTopic(Constants.WHITELIST, bundle -> {
+            if (bundle.meta().id().equals("enabled")) {
+                server.setEnforceWhitelist(bundle.get("enabled", boolean.class).orElse(false));
+                return;
+            }
+
+            if (bundle.meta().action().equals(DataBundle.Action.REMOVE) && server.isEnforceWhitelist()) {
+                Optional.ofNullable(server.getPlayerList().getPlayer(UUID.fromString(bundle.meta().id())))
+                        .ifPresent(player -> player.connection.disconnect(Component.literal("You are no longer whitelisted on this server!")));
+            }
+        });
     }
 }

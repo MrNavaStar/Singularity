@@ -29,7 +29,9 @@ public class SynchronizedBanList extends UserBanList {
             return;
         }
         GameProfile profile = R.of(entry).get("user", GameProfile.class);
-        Broker.putTopic(Constants.BANNED_PLAYERS, profile.getId().toString(), new DataBundle().put("entry", entry));
+        Broker.putTopic(Constants.BANNED_PLAYERS, profile.getId().toString(), new DataBundle()
+                .meta(new DataBundle.Meta().propagation(DataBundle.Propagation.ALL))
+                .put("entry", entry));
     }
 
     @Override

@@ -20,6 +20,10 @@ public class SynchronizedGameProfileRepository implements GameProfileRepository 
 
     private final GameProfileRepository parent;
 
+    public static void saveProfile(GameProfile profile) {
+        Broker.putGlobalTopic(Constants.USER_CACHE, profile.getName(), new DataBundle().put("profile", profile));
+    }
+
     @Override
     public void findProfilesByNames(String[] names, ProfileLookupCallback callback) {
         ArrayList<String> notFound = new ArrayList<>();
@@ -35,7 +39,7 @@ public class SynchronizedGameProfileRepository implements GameProfileRepository 
             @Override
             public void onProfileLookupSucceeded(GameProfile profile) {
                 callback.onProfileLookupSucceeded(profile);
-                Broker.putGlobalTopic(Constants.USER_CACHE, profile.getName(), new DataBundle().put("profile", profile));
+                saveProfile(profile);
             }
 
             @Override

@@ -7,7 +7,6 @@ import me.mrnavastar.singularity.common.Constants;
 import me.mrnavastar.singularity.common.networking.DataBundle;
 import me.mrnavastar.singularity.loader.impl.Broker;
 import me.mrnavastar.singularity.loader.util.Mappings;
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.players.*;
 import org.jetbrains.annotations.Nullable;
@@ -27,7 +26,9 @@ public class SynchronizedOpList extends ServerOpList {
             return;
         }
         GameProfile profile = R.of(entry).get("user", GameProfile.class);
-        Broker.putTopic(Constants.OPERATOR, profile.getId().toString(), new DataBundle().put("entry", entry));
+        Broker.putTopic(Constants.OPERATOR, profile.getId().toString(), new DataBundle()
+                .meta(new DataBundle.Meta().propagation(DataBundle.Propagation.ALL))
+                .put("entry", entry));
     }
 
     @Override
@@ -68,6 +69,7 @@ public class SynchronizedOpList extends ServerOpList {
         DataBundle.register(ServerOpListEntry.class);
         R.of(server.getPlayerList()).set(Mappings.of("ops", "field_14353"), new SynchronizedOpList());
         Broker.subTopic(Constants.OPERATOR, bundle -> {
+
             /*bundle.get("entry", ServerOpListEntry.class).ifPresent(entry -> {
                 entry.
             });
