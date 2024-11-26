@@ -1,6 +1,7 @@
 package me.mrnavastar.singularity.loader.impl.sync;
 
 import lombok.Setter;
+import lombok.SneakyThrows;
 import me.mrnavastar.r.R;
 import me.mrnavastar.singularity.common.Constants;
 import me.mrnavastar.singularity.common.networking.DataBundle;
@@ -14,6 +15,7 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 
 import java.io.*;
+import java.nio.file.Path;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Optional;
@@ -135,6 +137,16 @@ public class SynchronizedMinecraft {
 
     public static void syncPlayerData() {
         server.getPlayerList().getPlayers().forEach(player -> Broker.putPlayerTopic(player.getUUID(), Constants.PLAYER_TOPIC, createPlayerDataBundle(player)));
+    }
+
+    @SneakyThrows
+    public static void ImportPlayerData(Path path) {
+        Optional.of(NbtIo.readCompressed(path, NbtAccounter.unlimitedHeap())).ifPresent(playerData -> {
+            UUID uuid = playerData.getUUID("uuid");
+            DataBundle bundle = new DataBundle();
+            bundle.put(Constants.PLAYER_TOPIC + ":nbt", playerData);
+            Broker.putPlayerTopic(uuid, Constants.PLAYER_TOPIC, bundle);
+        });
     }
 
     protected static void onJoin(ServerPlayer player) {
