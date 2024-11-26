@@ -17,6 +17,7 @@ import org.bukkit.event.world.WorldSaveEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.spigotmc.SpigotConfig;
 
+import java.nio.file.Path;
 import java.util.logging.Logger;
 
 public class Paper extends JavaPlugin {
@@ -58,11 +59,12 @@ public class Paper extends JavaPlugin {
         ProtoWeaver.load(Broker.PROTOCOL);
         getServer().getPluginManager().registerEvents(new EventListener(), this);
 
-        SynchronizedMinecraft.setPlayerCallback(player -> player.valid = !player.valid);
         Broker.setSettingsCallback(settings -> {
             SpigotConfig.disablePlayerDataSaving = settings.syncPlayerData;
             SpigotConfig.disableStatSaving = settings.syncPlayerStats;
             SpigotConfig.disableAdvancementSaving = settings.syncPlayerAdvancements;
         });
+        SynchronizedMinecraft.setPlayerCallback(player -> player.valid = !player.valid);
+        SynchronizedMinecraft.ImportPlayerData(Path.of(getDataFolder() + "/import_playerdata"));
     }
 }

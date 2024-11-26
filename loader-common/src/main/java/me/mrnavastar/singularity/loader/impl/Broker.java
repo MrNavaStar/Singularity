@@ -1,6 +1,5 @@
 package me.mrnavastar.singularity.loader.impl;
 
-import com.mojang.authlib.GameProfile;
 import lombok.Getter;
 import lombok.Setter;
 import me.mrnavastar.protoweaver.api.ProtoConnectionHandler;
@@ -8,11 +7,9 @@ import me.mrnavastar.protoweaver.api.netty.ProtoConnection;
 import me.mrnavastar.protoweaver.api.protocol.Protocol;
 import me.mrnavastar.singularity.common.Constants;
 import me.mrnavastar.singularity.common.networking.DataBundle;
-import me.mrnavastar.singularity.common.networking.Profile;
 import me.mrnavastar.singularity.common.networking.Settings;
 import me.mrnavastar.singularity.common.networking.Topic;
 import me.mrnavastar.singularity.loader.impl.sync.SynchronizedMinecraft;
-import me.mrnavastar.singularity.loader.impl.sync.SynchronizedUserCache;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -30,47 +27,52 @@ public class Broker implements ProtoConnectionHandler {
     @Getter private static Settings settings = new Settings();
     @Getter private static ProtoConnection proxy;
 
-    private static void validateNamespace(String topic) {
-        String[] names = topic.split(":");
-        if (names.length < 2) throw new IllegalArgumentException("Invalid Topic! Topic names should be namespaced: 'namespace:field`");
-    }
+
 
     private static void syncSubs() {
         if (proxy == null || !proxy.isOpen()) return;
         subs.forEach((sub, callbacks) -> proxy.send(sub));
     }
 
-    public static void putPlayerTopic(UUID player, String topic, DataBundle bundle) {
-        validateNamespace(topic);
-
+    private static void putTopic(Topic topic, String id, DataBundle bundle) {
+        topic.validate();
         if (proxy == null || !proxy.isOpen()) return;
-        bundle.meta()
-                .id(player)
-                .topic(new Topic(player.equals(Constants.STATIC_DATA) ? Topic.TopicType.STATIC : Topic.TopicType.PLAYER, topic))
-                .action(DataBundle.Action.PUT);
+
+        bundle.meta().id(id).topic(topic).action(DataBundle.Action.PUT);
         proxy.send(bundle);
     }
 
-    public static void putStaticTopic(String topic, DataBundle bundle) {
-        putPlayerTopic(Constants.STATIC_DATA, topic, bundle);
+    public static void putTopic(String topic, String id, DataBundle bundle) {
+        putTopic(new Topic(topic, false), id, bundle);
     }
 
-    public static void removePlayerTopic(UUID player, String topic) {
+    public static void putGlobalTopic(String topic, String id, DataBundle bundle) {
+        putTopic(new Topic(topic, true), id, bundle);
+    }
+
+    private static void removeTopic(Topic topic, String id) {
+        topic.validate();
         if (proxy == null || !proxy.isOpen()) return;
+
         proxy.send(new DataBundle.Meta()
-                .id(player)
-                .topic(new Topic(player.equals(Constants.STATIC_DATA) ? Topic.TopicType.STATIC : Topic.TopicType.PLAYER, topic))
+                .id(id)
+                .topic(topic)
                 .action(DataBundle.Action.REMOVE));
     }
 
-    public static void removeStaticTopic(String topic) {
-        removePlayerTopic(Constants.STATIC_DATA, topic);
+    public static void removeTopic(String topic, String id) {
+        removeTopic(new Topic(topic, false), id);
     }
 
-    public static CompletableFuture<Optional<DataBundle>> getPlayerTopic(UUID player, String topic) {
+    public static void removeGlobalTopic(String topic, String id) {
+        removeTopic(new Topic(topic, true), id);
+    }
+
+    private static CompletableFuture<Optional<DataBundle>> getTopic(Topic topic, String id) {
+        topic.validate();
         DataBundle.Meta meta = new DataBundle.Meta()
-                .id(player)
-                .topic(new Topic(player.equals(Constants.STATIC_DATA) ? Topic.TopicType.STATIC : Topic.TopicType.PLAYER, topic))
+                .id(id)
+                .topic(topic)
                 .action(DataBundle.Action.GET);
 
         return Optional.ofNullable(requests.get(meta)).orElseGet(() -> {
@@ -85,26 +87,28 @@ public class Broker implements ProtoConnectionHandler {
         });
     }
 
-    public static CompletableFuture<Optional<DataBundle>> getStaticTopic(String topic) {
-        return getPlayerTopic(Constants.STATIC_DATA, topic);
+    public static CompletableFuture<Optional<DataBundle>> getTopic(String topic, String id) {
+        return getTopic(new Topic(topic, false), id);
     }
 
-    private static void subTopic(Topic.TopicType type, String topic, Consumer<DataBundle> handler) {
-        validateNamespace(topic);
+    public static CompletableFuture<Optional<DataBundle>> getGlobalTopic(String topic, String id) {
+        return getTopic(new Topic(topic, true), id);
+    }
 
-        Topic subscription = new Topic(type, topic);
-        HashSet<Consumer<DataBundle>> handlers = subs.getOrDefault(subscription, new HashSet<>());
+    private static void subTopic(Topic topic, Consumer<DataBundle> handler) {
+        topic.validate();
+        HashSet<Consumer<DataBundle>> handlers = subs.getOrDefault(topic, new HashSet<>());
         handlers.add(handler);
-        subs.put(subscription, handlers);
+        subs.put(topic, handlers);
         syncSubs();
     }
 
-    public static void subPlayerTopic(String topic, Consumer<DataBundle> handler) {
-        subTopic(Topic.TopicType.PLAYER, topic, handler);
+    public static void subTopic(String topic, Consumer<DataBundle> handler) {
+        subTopic(new Topic(topic, false), handler);
     }
 
-    public static void subStaticTopic(String topic, Consumer<DataBundle> handler) {
-        subTopic(Topic.TopicType.STATIC, topic, handler);
+    public static void subGlobalTopic(String topic, Consumer<DataBundle> handler) {
+        subTopic(new Topic(topic, true), handler);
     }
 
     public void onReady(ProtoConnection protoConnection) {
@@ -124,15 +128,7 @@ public class Broker implements ProtoConnectionHandler {
                 else subs.getOrDefault(data.meta().topic(), new HashSet<>()).forEach(consumer -> consumer.accept(data));
             }
 
-            //TODO: Would be nice to move this into a global topic, but we would need to implement global topics in
-            // a not terrible way
-            case Profile profile -> {
-                switch (profile.getProperty()) {
-                    case NAME_LOOKUP, UUID_LOOKUP -> SynchronizedUserCache.update(profile, new GameProfile(profile.getUuid(), profile.getName()));
-                    case BAD_LOOKUP -> SynchronizedUserCache.update(profile, null);
-                }
-            }
-
+            //TODO: This could be a static topic, but its not so bad like this either
             case Settings s -> {
                 settings = s;
                 SynchronizedMinecraft.reloadBlacklists();

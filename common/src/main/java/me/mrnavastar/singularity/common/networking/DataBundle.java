@@ -10,7 +10,6 @@ import me.mrnavastar.protoweaver.core.util.ObjectSerializer;
 
 import java.util.HashMap;
 import java.util.Optional;
-import java.util.UUID;
 
 @Accessors(fluent = true)
 @Setter
@@ -26,15 +25,21 @@ public class DataBundle {
         NONE
     }
 
+    public enum Propagation {
+        ALL,
+        NEXT_SERVER,
+        NONE
+    }
+
     @Setter
     @Getter
     @ToString
     @EqualsAndHashCode
     public static class Meta {
-        private UUID id;
+        private String id;
         private Action action = Action.NONE;
         private Topic topic;
-        private boolean propagate = false;
+        private Propagation propagation = Propagation.ALL;
     }
 
     private static final ObjectSerializer serializer = new ObjectSerializer();

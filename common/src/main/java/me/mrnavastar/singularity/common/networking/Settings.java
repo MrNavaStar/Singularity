@@ -9,6 +9,9 @@ public class Settings {
     public boolean syncPlayerData = false;
     public boolean syncPlayerStats = false;
     public boolean syncPlayerAdvancements = false;
+    public boolean syncOps = false;
+    public boolean syncWhitelist = false;
+    public boolean syncBans = false;
 
     public HashSet<String> nbtBlacklists = new HashSet<>();
 
@@ -16,6 +19,9 @@ public class Settings {
         syncPlayerData = true;
         syncPlayerStats = true;
         syncPlayerAdvancements = true;
+        syncOps = true;
+        syncWhitelist = true;
+        syncBans = true;
 
         nbtBlacklists.add("singularity.location");
         nbtBlacklists.add("singularity.spawn");

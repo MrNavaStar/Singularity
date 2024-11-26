@@ -11,51 +11,72 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.players.*;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.IOException;
+
 public class SynchronizedOpList extends ServerOpList {
 
     public SynchronizedOpList() {
         super(PlayerList.OPLIST_FILE);
-        PlayerList.OPLIST_FILE.delete();
     }
 
     @Override
     public void add(ServerOpListEntry entry) {
+        if (!Broker.getSettings().syncOps) {
+            super.add(entry);
+            return;
+        }
         GameProfile profile = R.of(entry).get("user", GameProfile.class);
-        Broker.putPlayerTopic(profile.getId(), Constants.OPERATOR, new DataBundle()
-                .put("level", entry.getLevel())
-                .put("bypass", entry.getBypassesPlayerLimit()));
+        Broker.putTopic(Constants.OPERATOR, profile.getId().toString(), new DataBundle()
+                .meta(new DataBundle.Meta().propagation(DataBundle.Propagation.ALL))
+                .put("entry", entry));
     }
 
     @Override
     public void remove(GameProfile profile) {
-        Broker.removePlayerTopic(profile.getId(), Constants.OPERATOR);
+        if (!Broker.getSettings().syncOps) {
+            super.remove(profile);
+            return;
+        }
+        Broker.removeTopic(Constants.OPERATOR, profile.getId().toString());
     }
 
     @Override
     @SneakyThrows
     public @Nullable ServerOpListEntry get(GameProfile profile) {
-        return Broker.getPlayerTopic(profile.getId(), Constants.OPERATOR).get()
-                .flatMap(data -> data.get("level", int.class)
-                .flatMap(level -> data.get("bypass", boolean.class)
-                        .map(bypass -> new ServerOpListEntry(profile, level, bypass))))
+        if (!Broker.getSettings().syncOps) return super.get(profile);
+        return Broker.getTopic(Constants.OPERATOR, profile.getId().toString()).get()
+                .flatMap(bundle -> bundle.get("entry", ServerOpListEntry.class))
                 .orElse(null);
     }
 
     @Override
-    @SneakyThrows
     protected boolean contains(GameProfile profile) {
-        return Broker.getPlayerTopic(profile.getId(), Constants.OPERATOR).get().isPresent();
+        if (!Broker.getSettings().syncOps) return super.contains(profile);
+        return get(profile) != null;
     }
 
-    // Bye bye
     @Override
-    public void save() {}
+    public void save() throws IOException {
+        if (!Broker.getSettings().syncOps) super.save();
+    }
 
-    // Bye bye
     @Override
-    public void load() {}
+    public void load() throws IOException {
+        if (!Broker.getSettings().syncOps) super.load();
+    }
 
     public static void install(MinecraftServer server) {
+        DataBundle.register(ServerOpListEntry.class);
         R.of(server.getPlayerList()).set(Mappings.of("ops", "field_14353"), new SynchronizedOpList());
+        Broker.subTopic(Constants.OPERATOR, bundle -> {
+
+            /*bundle.get("entry", ServerOpListEntry.class).ifPresent(entry -> {
+                entry.
+            });
+
+            server.getPlayerList().getOps().getUserList()
+
+            commandSourceStack.sendSuccess(() -> Component.translatable("commands.op.success", new Object[]{((GameProfile)collection.iterator().next()).getName()}), true);*/
+        });
     }
 }

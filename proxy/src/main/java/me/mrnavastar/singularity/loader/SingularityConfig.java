@@ -1,9 +1,11 @@
 package me.mrnavastar.singularity.loader;
 
+import lombok.Getter;
 import me.mrnavastar.protoweaver.proxy.api.ProtoProxy;
 import me.mrnavastar.protoweaver.proxy.api.ProtoServer;
 import me.mrnavastar.singularity.common.Constants;
 import me.mrnavastar.singularity.common.networking.Settings;
+import me.mrnavastar.singularity.common.networking.Topic;
 import me.mrnavastar.sqlib.SQLib;
 import me.mrnavastar.sqlib.api.DataStore;
 import org.slf4j.Logger;
@@ -12,12 +14,37 @@ import org.yaml.snakeyaml.Yaml;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class SingularityConfig {
 
-    private static final HashMap<ProtoServer, String> groups = new HashMap<>();
-    private static final HashMap<ProtoServer, Settings> settings = new HashMap<>();
-    private static final HashMap<String, DataStore> groupStores = new HashMap<>();
+    @Getter
+    public static class GroupStore {
+        private String groupName;
+        private final ConcurrentHashMap<String, DataStore> topics = new ConcurrentHashMap<>();
+
+        public GroupStore(String groupName) {
+            this.groupName = groupName;
+            topics.put(Constants.PLAYER_TOPIC, SQLib.getDatabase().dataStore(Constants.SINGULARITY_ID,  "static_" + groupName + "_player_data"));
+        }
+
+        public GroupStore() {
+            topics.put(Constants.PLAYER_TOPIC, SQLib.getDatabase().dataStore(Constants.SINGULARITY_ID,  "default_player_data"));
+        }
+
+        public DataStore getTopicStore(Topic topic) {
+            return Optional.ofNullable(topics.get(topic.topic())).orElseGet(() -> {
+                DataStore store = SQLib.getDatabase().dataStore(Constants.SINGULARITY_ID,  "static_" + groupName + "_" + topic.databaseKey());
+                topics.put(topic.topic(), store);
+                return store;
+            });
+        }
+    }
+
+    private static final ConcurrentHashMap<ProtoServer, String> groups = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<ProtoServer, Settings> settings = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, GroupStore> groupStores = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, DataStore> globalStores = new ConcurrentHashMap<>();
     private static final ArrayList<String> blacklists = new ArrayList<>();
 
     static {
@@ -36,8 +63,16 @@ public class SingularityConfig {
         return Optional.ofNullable(settings.get(server));
     }
 
-    public static Optional<DataStore> getServerStore(ProtoServer server) {
+    public static Optional<GroupStore> getServerStore(ProtoServer server) {
         return Optional.ofNullable(groups.get(server)).map(groupStores::get);
+    }
+
+    public static DataStore getGlobalStore(Topic topic) {
+        return Optional.ofNullable(globalStores.get(topic.topic())).orElseGet(() -> {
+            DataStore store = SQLib.getDatabase().dataStore(Constants.SINGULARITY_ID,  "global_" + topic.databaseKey());
+            globalStores.put(topic.topic(), store);
+            return store;
+        });
     }
 
     public static List<ProtoServer> getSameGroup(ProtoServer server) {
@@ -78,7 +113,7 @@ public class SingularityConfig {
                         if (s.get("singularity.stats") instanceof Boolean enabled) groupSettings.syncPlayerStats = enabled;
                         if (s.get("singularity.advancements") instanceof Boolean enabled) groupSettings.syncPlayerAdvancements = enabled;
 
-                        groupStores.put(groupName, SQLib.getDatabase().dataStore(Constants.SINGULARITY_ID,  "config_" + groupName + "_player_data"));
+                        groupStores.put(groupName, new GroupStore(groupName));
 
                         ProtoProxy.getRegisteredServers().stream()
                                 .filter(server -> List.of(servers.split("\n")).contains(server.getName()))
@@ -92,7 +127,7 @@ public class SingularityConfig {
         } catch (FileNotFoundException ignore) {
             logger.info("No config found, loading defaults");
 
-            groupStores.put("default", SQLib.getDatabase().dataStore(Constants.SINGULARITY_ID, "default_player_data"));
+            groupStores.put("default", new GroupStore());
             ProtoProxy.getRegisteredServers().forEach(server -> {
                 settings.put(server, new Settings().setDefault());
                 groups.put(server, "default");
