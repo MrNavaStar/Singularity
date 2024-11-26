@@ -7,62 +7,73 @@ import me.mrnavastar.singularity.common.Constants;
 import me.mrnavastar.singularity.common.networking.DataBundle;
 import me.mrnavastar.singularity.loader.impl.Broker;
 import me.mrnavastar.singularity.loader.util.Mappings;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.players.*;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Date;
+import java.io.IOException;
+import java.util.Optional;
+import java.util.UUID;
 
 public class SynchronizedBanList extends UserBanList {
 
     public SynchronizedBanList() {
         super(PlayerList.USERBANLIST_FILE);
-        PlayerList.USERBANLIST_FILE.delete();
     }
 
     @Override
     public void add(UserBanListEntry entry) {
+        if (!Broker.getSettings().syncBans) {
+            super.add(entry);
+            return;
+        }
         GameProfile profile = R.of(entry).get("user", GameProfile.class);
-        Broker.putPlayerTopic(profile.getId(), Constants.BANNED_PLAYERS, new DataBundle()
-                .put("created", entry.getCreated())
-                .put("source", entry.getSource())
-                .put("expires", entry.getExpires())
-                .put("reason", entry.getReason()));
+        Broker.putTopic(Constants.BANNED_PLAYERS, profile.getId().toString(), new DataBundle().put("entry", entry));
     }
 
     @Override
     public void remove(GameProfile profile) {
-        Broker.removePlayerTopic(profile.getId(), Constants.BANNED_PLAYERS);
+        if (!Broker.getSettings().syncBans) {
+            super.remove(profile);
+            return;
+        }
+        Broker.removeTopic(Constants.BANNED_PLAYERS, profile.getId().toString());
     }
 
     @Override
     @SneakyThrows
     public @Nullable UserBanListEntry get(GameProfile profile) {
-        return Broker.getPlayerTopic(profile.getId(), Constants.BANNED_PLAYERS).get()
-                .map(data -> {
-                    Date created = data.get("created", Date.class).orElse(null);
-                    String source = data.get("source", String.class).orElse(null);
-                    Date expires = data.get("expires", Date.class).orElse(null);
-                    String reason = data.get("reason", String.class).orElse(null);
-                    return new UserBanListEntry(profile, created, source, expires, reason);
-                }).orElse(null);
+        if (!Broker.getSettings().syncBans) return super.get(profile);
+        return Broker.getTopic(Constants.BANNED_PLAYERS, profile.getId().toString()).get()
+                .flatMap(bundle -> bundle.get("entry", UserBanListEntry.class))
+                .orElse(null);
     }
 
     @Override
-    @SneakyThrows
     protected boolean contains(GameProfile profile) {
-        return Broker.getPlayerTopic(profile.getId(), Constants.BANNED_PLAYERS).get().isPresent();
+        if (!Broker.getSettings().syncBans) super.contains(profile);
+        return get(profile) != null;
     }
 
-    // Bye bye
     @Override
-    public void save() {}
+    public void save() throws IOException {
+        if (!Broker.getSettings().syncBans) super.save();
+    }
 
-    // Bye bye
     @Override
-    public void load() {}
+    public void load() throws IOException {
+        if (!Broker.getSettings().syncBans) super.load();
+    }
 
     public static void install(MinecraftServer server) {
+        DataBundle.register(UserBanListEntry.class);
         R.of(server.getPlayerList()).set(Mappings.of("bans", "field_14344"), new SynchronizedBanList());
+        // Disconnect player if banned from another server
+        Broker.subTopic(Constants.BANNED_PLAYERS, bundle -> {
+            Optional.ofNullable(server.getPlayerList().getPlayer(UUID.fromString(bundle.meta().id())))
+                    .ifPresent(player -> bundle.get("entry", UserBanListEntry.class)
+                            .ifPresent(entry -> player.connection.disconnect(Component.literal(entry.getReason()))));
+        });
     }
 }

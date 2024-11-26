@@ -15,6 +15,7 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 
 import java.io.*;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Date;
 import java.util.HashSet;
@@ -22,6 +23,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 public class SynchronizedMinecraft {
 
@@ -32,10 +34,13 @@ public class SynchronizedMinecraft {
 
     public static void init(MinecraftServer s) {
         server = s;
-        SynchronizedUserCache.install(server);
+        SynchronizedGameProfileRepository.install(server);
         SynchronizedOpList.install(server);
         SynchronizedWhiteList.install(server);
         SynchronizedBanList.install(server);
+
+        // whitelist is handled by the proxy
+        server.setEnforceWhitelist(false);
 
         DataBundle.register(Date.class);
         // Register NBT Types
@@ -58,12 +63,8 @@ public class SynchronizedMinecraft {
         reloadBlacklists();
 
         // Listen for player data from velocity
-        Broker.subPlayerTopic(Constants.PLAYER_TOPIC, data -> Optional.ofNullable(server.getPlayerList().getPlayer(data.meta().id()))
-                .ifPresentOrElse(player -> processData(player, data), () -> incoming.put(data.meta().id(), data)));
-
-        // Get current whitelist state and listen for future changes
-        Broker.getStaticTopic(Constants.WHITELIST).whenComplete((bundle, throwable) -> bundle.ifPresent(data -> SynchronizedWhiteList.ENABLED.accept(server, data)));
-        Broker.subStaticTopic(Constants.WHITELIST, data -> SynchronizedWhiteList.ENABLED.accept(server, data));
+        Broker.subTopic(Constants.PLAYER_TOPIC, data -> Optional.ofNullable(server.getPlayerList().getPlayer(UUID.fromString(data.meta().id())))
+                .ifPresentOrElse(player -> processData(player, data), () -> incoming.put(UUID.fromString(data.meta().id()), data)));
 
         // Player Data
         Singularity.SEND_DATA.register(((player, data) -> {
@@ -136,17 +137,27 @@ public class SynchronizedMinecraft {
     }
 
     public static void syncPlayerData() {
-        server.getPlayerList().getPlayers().forEach(player -> Broker.putPlayerTopic(player.getUUID(), Constants.PLAYER_TOPIC, createPlayerDataBundle(player)));
+        server.getPlayerList().getPlayers().forEach(player -> Broker.putTopic(Constants.PLAYER_TOPIC, player.getUUID().toString(), createPlayerDataBundle(player)));
     }
 
     @SneakyThrows
     public static void ImportPlayerData(Path path) {
-        Optional.of(NbtIo.readCompressed(path, NbtAccounter.unlimitedHeap())).ifPresent(playerData -> {
-            UUID uuid = playerData.getUUID("uuid");
-            DataBundle bundle = new DataBundle();
-            bundle.put(Constants.PLAYER_TOPIC + ":nbt", playerData);
-            Broker.putPlayerTopic(uuid, Constants.PLAYER_TOPIC, bundle);
-        });
+        if (!new File(String.valueOf(path)).exists()) return;
+
+        try (Stream<Path> s = Files.walk(path)) {
+            s.filter(f -> f.endsWith(".dat")).forEach(file -> {
+                try {
+                    Optional.of(NbtIo.readCompressed(file, NbtAccounter.unlimitedHeap())).ifPresent(playerData -> {
+                        UUID uuid = playerData.getUUID("uuid");
+                        DataBundle bundle = new DataBundle();
+                        bundle.put(Constants.PLAYER_TOPIC + ":nbt", playerData);
+                        Broker.putTopic(Constants.PLAYER_TOPIC, uuid.toString(), bundle);
+                    });
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            });
+        }
     }
 
     protected static void onJoin(ServerPlayer player) {
@@ -155,7 +166,7 @@ public class SynchronizedMinecraft {
     }
 
     protected static void onLeave(ServerPlayer player) {
-        Broker.putPlayerTopic(player.getUUID(), Constants.PLAYER_TOPIC, createPlayerDataBundle(player));
+        Broker.putTopic(Constants.PLAYER_TOPIC, player.getUUID().toString(), createPlayerDataBundle(player));
     }
 
     protected static void processData(ServerPlayer player, DataBundle data) {

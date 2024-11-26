@@ -11,6 +11,8 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import org.apache.logging.log4j.Level;
 
+import java.nio.file.Path;
+
 public class Fabric extends SynchronizedMinecraft implements DedicatedServerModInitializer {
 
     static {
@@ -25,5 +27,7 @@ public class Fabric extends SynchronizedMinecraft implements DedicatedServerModI
         ServerLifecycleEvents.SERVER_STARTED.register(SynchronizedMinecraft::init);
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server1) -> onJoin(handler.getPlayer()));
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server1) -> onLeave(handler.getPlayer()));
+
+        SynchronizedMinecraft.ImportPlayerData(Path.of(FabricLoader.getInstance().getGameDir() + "/import_playerdata"));
     }
 }

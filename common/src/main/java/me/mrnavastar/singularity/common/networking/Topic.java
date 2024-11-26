@@ -1,13 +1,13 @@
 package me.mrnavastar.singularity.common.networking;
 
-public record Topic(TopicType type, String topic) {
-
-    public enum TopicType {
-        PLAYER,
-        STATIC
-    }
+public record Topic(String topic, boolean global) {
 
     public String databaseKey() {
-        return type + "_" + topic.replace(":", "_");
+        return topic.replace(":", "_");
+    }
+
+    public void validate() {
+        String[] names = topic.split(":");
+        if (names.length < 2) throw new IllegalArgumentException("Invalid Topic! Topic names should be namespaced: 'namespace:field`");
     }
 }
