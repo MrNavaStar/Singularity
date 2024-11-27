@@ -1,6 +1,5 @@
 package me.mrnavastar.singularity.loader.impl.sync;
 
-import com.mojang.authlib.GameProfile;
 import lombok.Setter;
 import lombok.SneakyThrows;
 import me.mrnavastar.r.R;
@@ -25,6 +24,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
+import java.util.zip.ZipException;
 
 public class SynchronizedMinecraft {
 
@@ -33,7 +33,7 @@ public class SynchronizedMinecraft {
     @Setter private static Consumer<ServerPlayer> playerCallback;
     private static MinecraftServer server;
 
-    public static void init(MinecraftServer s) {
+    public static void init(MinecraftServer s, Path importPath) {
         server = s;
         SynchronizedGameProfileRepository.install(server);
         SynchronizedOpList.install(server);
@@ -61,6 +61,7 @@ public class SynchronizedMinecraft {
         DataBundle.register(ShortTag.class);
         DataBundle.register(StringTag.class);
 
+        importPlayerData(Path.of(importPath + "/import_playerdata"));
         reloadBlacklists();
 
         // Listen for player data from velocity
@@ -143,18 +144,18 @@ public class SynchronizedMinecraft {
     }
 
     @SneakyThrows
-    public static void ImportPlayerData(Path path) {
+    public static void importPlayerData(Path path) {
         if (!new File(String.valueOf(path)).exists()) return;
 
         try (Stream<Path> s = Files.walk(path)) {
-            s.filter(f -> f.endsWith(".dat")).forEach(file -> {
+            s.filter(Files::isRegularFile).forEach(file -> {
                 try {
                     Optional.of(NbtIo.readCompressed(file, NbtAccounter.unlimitedHeap())).ifPresent(playerData -> {
-                        UUID uuid = playerData.getUUID("uuid");
-                        DataBundle bundle = new DataBundle();
-                        bundle.put(Constants.PLAYER_TOPIC + ":nbt", playerData);
-                        Broker.putTopic(Constants.PLAYER_TOPIC, uuid.toString(), bundle);
+                        UUID uuid = new UUID(playerData.getLong("UUIDMost"), playerData.getLong("UUIDLeast"));
+                        if (uuid.equals(new UUID(0, 0))) return;
+                        Broker.putTopic(Constants.PLAYER_TOPIC, uuid.toString(), new DataBundle().put(Constants.PLAYER_TOPIC + ":nbt", playerData));
                     });
+                } catch (ZipException ignore) {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }

@@ -10,12 +10,10 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.loading.FMLConfig;
 import net.minecraftforge.fml.loading.FMLEnvironment;
 import net.minecraftforge.fml.loading.FMLLoader;
 import org.apache.logging.log4j.Level;
 
-import java.nio.file.Path;
 import java.util.function.Consumer;
 
 @Mod(Constants.SINGULARITY_ID)
@@ -29,10 +27,8 @@ public class Forge extends SynchronizedMinecraft {
     public Forge() {
         log(Level.INFO, Constants.SINGULARITY_BOOT_MESSAGE);
 
-        MinecraftForge.EVENT_BUS.addListener((Consumer<ServerStartingEvent>) event -> init(event.getServer()));
+        MinecraftForge.EVENT_BUS.addListener((Consumer<ServerStartingEvent>) event -> init(event.getServer(), FMLLoader.getGamePath()));
         MinecraftForge.EVENT_BUS.addListener((Consumer<PlayerEvent.PlayerLoggedInEvent>) event -> onJoin((ServerPlayer) event.getEntity()));
         MinecraftForge.EVENT_BUS.addListener((Consumer<PlayerEvent.PlayerLoggedOutEvent>) event -> onLeave((ServerPlayer) event.getEntity()));
-
-        SynchronizedMinecraft.ImportPlayerData(Path.of(FMLLoader.getGamePath() + "/import_playerdata"));
     }
 }

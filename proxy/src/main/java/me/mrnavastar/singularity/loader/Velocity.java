@@ -44,12 +44,8 @@ public class Velocity implements ProtoConnectionHandler {
     private static final Gson GSON = new Gson();
     private static final Protocol WORMHOLE = Constants.WORMHOLE.setClientHandler(Velocity.class).build();
     private static final Topic PLAYER_TOPIC = new Topic(Constants.PLAYER_TOPIC, false);
-    private static final Type DATA_BUNDLE_TYPE = new TypeToken<HashMap<String, byte[]>>() {}.getType();
-    private static final SQLibType<DataBundle> DATA_BUNDLE = new SQLibType<>(GsonTypes.ELEMENT, v -> GSON.toJsonTree(v.data()), v -> {
-        DataBundle bundle = new DataBundle();
-        bundle.data(GSON.fromJson(v, DATA_BUNDLE_TYPE));
-        return bundle;
-    });
+    private static final Type DATA_BUNDLE_TYPE = new TypeToken<HashMap<String, byte[]>>(){}.getType();
+    private static final SQLibType<DataBundle> DATA_BUNDLE = new SQLibType<>(GsonTypes.ELEMENT, v -> GSON.toJsonTree(v.data()), v -> new DataBundle().data(GSON.fromJson(v, DATA_BUNDLE_TYPE)));
 
     private static final HashMap<ProtoServer, HashSet<Topic>> subs = new HashMap<>();
     private static final ConcurrentHashMap<UUID, ProtoServer> playerLocations = new ConcurrentHashMap<>();
@@ -154,9 +150,6 @@ public class Velocity implements ProtoConnectionHandler {
 
                 SingularityConfig.getServerStore(server)
                         .ifPresent(store -> {
-
-                            System.out.println(store.getTopicStore(topic));
-
                             store.getTopicStore(topic)
                                     .getOrCreateDefaultContainer(JavaTypes.STRING, "id", data.meta().id())
                                     .put(DATA_BUNDLE, "data", data);

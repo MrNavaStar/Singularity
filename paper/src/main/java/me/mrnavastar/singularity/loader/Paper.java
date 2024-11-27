@@ -26,8 +26,8 @@ public class Paper extends JavaPlugin {
 
     public static class EventListener extends SynchronizedMinecraft implements Listener {
 
-        public EventListener() {
-            init(MinecraftServer.getServer());
+        public EventListener(Path importPath) {
+            init(MinecraftServer.getServer(), importPath);
         }
 
         @EventHandler
@@ -57,7 +57,6 @@ public class Paper extends JavaPlugin {
     public void onEnable() {
         logger.info(Constants.SINGULARITY_BOOT_MESSAGE);
         ProtoWeaver.load(Broker.PROTOCOL);
-        getServer().getPluginManager().registerEvents(new EventListener(), this);
 
         Broker.setSettingsCallback(settings -> {
             SpigotConfig.disablePlayerDataSaving = settings.syncPlayerData;
@@ -65,6 +64,6 @@ public class Paper extends JavaPlugin {
             SpigotConfig.disableAdvancementSaving = settings.syncPlayerAdvancements;
         });
         SynchronizedMinecraft.setPlayerCallback(player -> player.valid = !player.valid);
-        SynchronizedMinecraft.ImportPlayerData(Path.of(getDataFolder() + "/import_playerdata"));
+        getServer().getPluginManager().registerEvents(new EventListener(getDataPath()), this);
     }
 }

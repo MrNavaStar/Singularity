@@ -14,12 +14,14 @@ import me.mrnavastar.singularity.loader.impl.sync.SynchronizedMinecraft;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Consumer;
 
 public class Broker implements ProtoConnectionHandler {
 
     public static final Protocol PROTOCOL = Constants.WORMHOLE.setServerHandler(Broker.class).build();
 
+    private static final ConcurrentLinkedQueue<DataBundle> queue = new ConcurrentLinkedQueue<>();
     private static final ConcurrentHashMap<DataBundle.Meta, CompletableFuture<Optional<DataBundle>>> requests = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<Topic, HashSet<Consumer<DataBundle>>> subs = new ConcurrentHashMap<>();
     @Setter private static Consumer<Settings> settingsCallback;
@@ -36,10 +38,10 @@ public class Broker implements ProtoConnectionHandler {
 
     private static void putTopic(Topic topic, String id, DataBundle bundle) {
         topic.validate();
-        if (proxy == null || !proxy.isOpen()) return;
-
         bundle.meta().id(id).topic(topic).action(DataBundle.Action.PUT);
-        proxy.send(bundle);
+
+        if (proxy == null || !proxy.isOpen()) queue.add(bundle);
+        else proxy.send(bundle);
     }
 
     public static void putTopic(String topic, String id, DataBundle bundle) {
@@ -114,6 +116,7 @@ public class Broker implements ProtoConnectionHandler {
     public void onReady(ProtoConnection protoConnection) {
         proxy = protoConnection;
         syncSubs();
+        while (!queue.isEmpty()) proxy.send(queue.remove());
     }
 
     @Override

@@ -23,7 +23,7 @@ tasks {
     runServer {
         minecraftVersion(project.minecraft_version)
         downloadPlugins {
-            url("https://maven.mrnavastar.rocks/releases/me/mrnavastar/protoweaver/paper/${project.protoweaver_version}/paper-${project.protoweaver_version}.jar")
+            url("https://maven.mrnavastar.me/releases/me/mrnavastar/protoweaver/paper/${project.protoweaver_version}/paper-${project.protoweaver_version}.jar")
         }
     }
 }

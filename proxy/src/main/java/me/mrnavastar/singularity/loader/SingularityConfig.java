@@ -20,7 +20,7 @@ public class SingularityConfig {
 
     @Getter
     public static class GroupStore {
-        private String groupName;
+        private final String groupName;
         private final ConcurrentHashMap<String, DataStore> topics = new ConcurrentHashMap<>();
 
         public GroupStore(String groupName) {
@@ -29,6 +29,7 @@ public class SingularityConfig {
         }
 
         public GroupStore() {
+            this.groupName = "default";
             topics.put(Constants.PLAYER_TOPIC, SQLib.getDatabase().dataStore(Constants.SINGULARITY_ID,  "default_player_data"));
         }
 
@@ -112,6 +113,9 @@ public class SingularityConfig {
                         if (s.get("singularity.player") instanceof Boolean enabled) groupSettings.syncPlayerData = enabled;
                         if (s.get("singularity.stats") instanceof Boolean enabled) groupSettings.syncPlayerStats = enabled;
                         if (s.get("singularity.advancements") instanceof Boolean enabled) groupSettings.syncPlayerAdvancements = enabled;
+                        if (s.get("singularity.ops") instanceof Boolean enabled) groupSettings.syncOps = enabled;
+                        if (s.get("singularity.whitelist") instanceof Boolean enabled) groupSettings.syncWhitelist = enabled;
+                        if (s.get("singularity.bans") instanceof Boolean enabled) groupSettings.syncBans = enabled;
 
                         groupStores.put(groupName, new GroupStore(groupName));
 
@@ -133,8 +137,5 @@ public class SingularityConfig {
                 groups.put(server, "default");
             });
         }
-
-        System.out.println(groups);
-        System.out.println(settings);
     }
 }
