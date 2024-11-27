@@ -1,6 +1,7 @@
 package me.mrnavastar.singularity.loader;
 
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.google.inject.Inject;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.player.ServerPreConnectEvent;
@@ -18,11 +19,12 @@ import me.mrnavastar.singularity.common.Constants;
 import me.mrnavastar.singularity.common.networking.DataBundle;
 import me.mrnavastar.singularity.common.networking.Topic;
 import me.mrnavastar.sqlib.api.DataContainer;
+import me.mrnavastar.sqlib.api.types.GsonTypes;
 import me.mrnavastar.sqlib.api.types.JavaTypes;
 import me.mrnavastar.sqlib.api.types.SQLibType;
-import me.mrnavastar.sqlib.impl.SQLPrimitive;
 import org.slf4j.Logger;
 
+import java.lang.reflect.Type;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
@@ -41,9 +43,14 @@ public class Velocity implements ProtoConnectionHandler {
 
     private static final Gson GSON = new Gson();
     private static final Protocol WORMHOLE = Constants.WORMHOLE.setClientHandler(Velocity.class).build();
-    private static final SQLibType<DataBundle> DATA_BUNDLE = new SQLibType<>(SQLPrimitive.STRING, v -> GSON.toJsonTree(v).toString(), v -> GSON.fromJson(v, DataBundle.class));
-
     private static final Topic PLAYER_TOPIC = new Topic(Constants.PLAYER_TOPIC, false);
+    private static final Type DATA_BUNDLE_TYPE = new TypeToken<HashMap<String, byte[]>>() {}.getType();
+    private static final SQLibType<DataBundle> DATA_BUNDLE = new SQLibType<>(GsonTypes.ELEMENT, v -> GSON.toJsonTree(v.data()), v -> {
+        DataBundle bundle = new DataBundle();
+        bundle.data(GSON.fromJson(v, DATA_BUNDLE_TYPE));
+        return bundle;
+    });
+
     private static final HashMap<ProtoServer, HashSet<Topic>> subs = new HashMap<>();
     private static final ConcurrentHashMap<UUID, ProtoServer> playerLocations = new ConcurrentHashMap<>();
 
@@ -147,6 +154,9 @@ public class Velocity implements ProtoConnectionHandler {
 
                 SingularityConfig.getServerStore(server)
                         .ifPresent(store -> {
+
+                            System.out.println(store.getTopicStore(topic));
+
                             store.getTopicStore(topic)
                                     .getOrCreateDefaultContainer(JavaTypes.STRING, "id", data.meta().id())
                                     .put(DATA_BUNDLE, "data", data);

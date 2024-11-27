@@ -1,5 +1,6 @@
 package me.mrnavastar.singularity.loader.impl.sync;
 
+import com.mojang.authlib.GameProfile;
 import lombok.Setter;
 import lombok.SneakyThrows;
 import me.mrnavastar.r.R;
@@ -162,7 +163,7 @@ public class SynchronizedMinecraft {
     }
 
     protected static void onJoin(ServerPlayer player) {
-        SynchronizedGameProfileRepository.saveProfile(player.getGameProfile());
+        //SynchronizedGameProfileRepository.saveProfile(player.getGameProfile());
         DataBundle data = incoming.remove(player.getUUID());
         if (data != null) processData(player, data);
     }
