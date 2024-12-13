@@ -12,7 +12,7 @@ The easiest mod to sync server data across your velocity network!
 
 Singularity is unique when it comes to the world of network sync mods/plugins. While tools like [InvSync](https://github.com/MrNavaStar/InvSync)
 or [HuskSync](https://github.com/WiIIiam278/HuskSync) require an external database to work, Singularity does not. All data transfers are done
-over the network, with velocity acting as a data broker. This allows for extremely rapid synchronization and dead simple configuration.
+over the network, with velocity acting as a data broker. This allows for extremely rapid synchronization and dead simple setup/configuration.
 
 To get started, simply install singularity on your velocity proxy and install the appropriate version on your backend server (fabric, forge, paper).
 
