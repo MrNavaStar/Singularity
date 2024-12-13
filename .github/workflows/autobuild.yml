@@ -15,7 +15,7 @@ jobs:
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v3
 
-      - name: Run Test Mod
+      - name: Build Project
         run: ./gradlew build
 
       - name: Upload Artifacts
