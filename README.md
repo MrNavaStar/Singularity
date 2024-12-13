@@ -16,6 +16,9 @@ over the network, with velocity acting as a data broker. This allows for extreme
 
 To get started, simply install singularity on your velocity proxy and install the appropriate version on your backend server (fabric, forge, paper).
 
+*NOTE*: Velocity currently requires [Protoweaver](https://modrinth.com/plugin/protoweaver) and [SQLib](https://modrinth.com/plugin/sqlib) to be installed alongside. This process can hopefully be removed in the future and have
+these dependencies packaged inside the velocity jar.
+
 Get the latest dev build from [here!](https://github.com/MrNavaStar/Singularity/actions)
 
 # Features
