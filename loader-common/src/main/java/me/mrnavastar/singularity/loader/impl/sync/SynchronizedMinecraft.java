@@ -35,10 +35,10 @@ public class SynchronizedMinecraft {
 
     public static void init(MinecraftServer s, Path importPath) {
         server = s;
-        SynchronizedGameProfileRepository.install(server);
-        SynchronizedOpList.install(server);
-        SynchronizedWhiteList.install(server);
-        SynchronizedBanList.install(server);
+        //SynchronizedGameProfileRepository.install(server);
+        //SynchronizedOpList.install(server);
+        //SynchronizedWhiteList.install(server);
+        //SynchronizedBanList.install(server);
 
         // whitelist is handled by the proxy
         server.setEnforceWhitelist(false);
@@ -148,7 +148,9 @@ public class SynchronizedMinecraft {
         if (!new File(String.valueOf(path)).exists()) return;
 
         try (Stream<Path> s = Files.walk(path)) {
-            s.filter(Files::isRegularFile).forEach(file -> {
+            s.filter(Files::isRegularFile)
+            .filter(f -> f.getFileName().toString().endsWith(".dat"))
+            .forEach(file -> {
                 try {
                     Optional.of(NbtIo.readCompressed(file, NbtAccounter.unlimitedHeap())).ifPresent(playerData -> {
                         UUID uuid = new UUID(playerData.getLong("UUIDMost"), playerData.getLong("UUIDLeast"));
