@@ -72,3 +72,11 @@ Currently, these are all the available settings:
 | singularity.score     | true          | player score                 |
 | singularity.spawn     | false         | player spawn point           |                      
 | singularity.xp        | true          | player experience level      |
+
+# Importing existing data
+The import system is currently pretty bare bones, but it is present. On one of your backend server, create a folder called `import_playerdata`
+in the root server directory. Here you can place existing `player.dat` files from an old world. The data from these files will automatically
+be imported into your network when the server launches and connects to your proxy.
+
+*NOTE*: Be sure to delete these files before you let players join your server, as any data inside the `import_playerdata` folder will overwrite
+any playerdata currently in the network the next time the server reboots. This system will be improved in the future.
