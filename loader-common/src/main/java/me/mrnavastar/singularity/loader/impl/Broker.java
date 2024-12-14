@@ -21,26 +21,26 @@ public class Broker implements ProtoConnectionHandler {
 
     public static final Protocol PROTOCOL = Constants.WORMHOLE.setServerHandler(Broker.class).build();
 
-    private static final ConcurrentLinkedQueue<DataBundle> queue = new ConcurrentLinkedQueue<>();
-    private static final ConcurrentHashMap<DataBundle.Meta, CompletableFuture<Optional<DataBundle>>> requests = new ConcurrentHashMap<>();
-    private static final ConcurrentHashMap<Topic, HashSet<Consumer<DataBundle>>> subs = new ConcurrentHashMap<>();
+    private static final ConcurrentLinkedQueue<Object> outgoingMessageQueue = new ConcurrentLinkedQueue<>();
+    private static final ConcurrentHashMap<DataBundle.Meta, CompletableFuture<Optional<DataBundle>>> pendingRequests = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<Topic, HashSet<Consumer<DataBundle>>> subscriptions = new ConcurrentHashMap<>();
     @Setter private static Consumer<Settings> settingsCallback;
 
     @Getter private static Settings settings = new Settings();
     @Getter private static ProtoConnection proxy;
 
-
-
     private static void syncSubs() {
-        if (proxy == null || !proxy.isOpen()) return;
-        subs.forEach((sub, callbacks) -> proxy.send(sub));
+        subscriptions.forEach((sub, callbacks) -> {
+            if (proxy == null || !proxy.isOpen()) outgoingMessageQueue.add(sub);
+            else proxy.send(sub);
+        });
     }
 
     private static void putTopic(Topic topic, String id, DataBundle bundle) {
         topic.validate();
         bundle.meta().id(id).topic(topic).action(DataBundle.Action.PUT);
 
-        if (proxy == null || !proxy.isOpen()) queue.add(bundle);
+        if (proxy == null || !proxy.isOpen()) outgoingMessageQueue.add(bundle);
         else proxy.send(bundle);
     }
 
@@ -77,12 +77,12 @@ public class Broker implements ProtoConnectionHandler {
                 .topic(topic)
                 .action(DataBundle.Action.GET);
 
-        return Optional.ofNullable(requests.get(meta)).orElseGet(() -> {
+        return Optional.ofNullable(pendingRequests.get(meta)).orElseGet(() -> {
             CompletableFuture<Optional<DataBundle>> future = new CompletableFuture<>();
 
             if (proxy == null || !proxy.isOpen()) future.complete(Optional.empty());
             else {
-                requests.put(meta, future);
+                pendingRequests.put(meta, future);
                 proxy.send(meta);
             }
             return future;
@@ -99,9 +99,9 @@ public class Broker implements ProtoConnectionHandler {
 
     private static void subTopic(Topic topic, Consumer<DataBundle> handler) {
         topic.validate();
-        HashSet<Consumer<DataBundle>> handlers = subs.getOrDefault(topic, new HashSet<>());
+        HashSet<Consumer<DataBundle>> handlers = subscriptions.getOrDefault(topic, new HashSet<>());
         handlers.add(handler);
-        subs.put(topic, handlers);
+        subscriptions.put(topic, handlers);
         syncSubs();
     }
 
@@ -116,19 +116,19 @@ public class Broker implements ProtoConnectionHandler {
     public void onReady(ProtoConnection protoConnection) {
         proxy = protoConnection;
         syncSubs();
-        while (!queue.isEmpty()) proxy.send(queue.remove());
+        while (!outgoingMessageQueue.isEmpty()) proxy.send(outgoingMessageQueue.remove());
     }
 
     @Override
     public void handlePacket(ProtoConnection protoConnection, Object packet) {
         switch (packet) {
-            case DataBundle.Meta meta -> Optional.ofNullable(requests.remove(meta)).ifPresent(request -> request.complete(Optional.empty()));
+            case DataBundle.Meta meta -> Optional.ofNullable(pendingRequests.remove(meta)).ifPresent(request -> request.complete(Optional.empty()));
 
             case DataBundle data -> {
                 if (data.meta().action().equals(DataBundle.Action.NONE))
-                    Optional.ofNullable(requests.remove(data.meta())).ifPresent(request -> request.complete(Optional.of(data)));
+                    Optional.ofNullable(pendingRequests.remove(data.meta())).ifPresent(request -> request.complete(Optional.of(data)));
 
-                else subs.getOrDefault(data.meta().topic(), new HashSet<>()).forEach(consumer -> consumer.accept(data));
+                else subscriptions.getOrDefault(data.meta().topic(), new HashSet<>()).forEach(consumer -> consumer.accept(data));
             }
 
             //TODO: This could be a static topic, but its not so bad like this either

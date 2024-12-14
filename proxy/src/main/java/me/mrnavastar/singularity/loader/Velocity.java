@@ -149,11 +149,9 @@ public class Velocity implements ProtoConnectionHandler {
                 }
 
                 SingularityConfig.getServerStore(server)
-                        .ifPresent(store -> {
-                            store.getTopicStore(topic)
-                                    .getOrCreateDefaultContainer(JavaTypes.STRING, "id", data.meta().id())
-                                    .put(DATA_BUNDLE, "data", data);
-                        });
+                        .ifPresent(store -> store.getTopicStore(topic)
+                                .getOrCreateDefaultContainer(JavaTypes.STRING, "id", data.meta().id())
+                                .put(DATA_BUNDLE, "data", data));
             }
             default -> WORMHOLE.logWarn("Ignoring unknown packet: " + packet);
         }
