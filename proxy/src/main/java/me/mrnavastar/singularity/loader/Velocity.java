@@ -52,7 +52,6 @@ public class Velocity implements ProtoConnectionHandler {
 
     @Inject
     private Logger logger;
-    private ProtoServer server;
 
     @Subscribe
     public void onProxyInitialization(ProxyInitializeEvent event) {
@@ -61,14 +60,13 @@ public class Velocity implements ProtoConnectionHandler {
         ProtoWeaver.load(WORMHOLE);
     }
 
-
     @Subscribe
     public void onServerPreConnect(ServerPreConnectEvent event) {
         UUID player = event.getPlayer().getUniqueId();
         Optional<RegisteredServer> s = event.getResult().getServer();
 
         // Send player data to subscribed servers and store player network location
-        s.flatMap(current -> ProtoProxy.getConnectedServer(WORMHOLE, current.getServerInfo().getName())).ifPresent(server -> {
+        s.flatMap(current -> ProtoProxy.getConnectedServer(WORMHOLE, current.getServerInfo().getAddress())).ifPresent(server -> {
             if (event.getPreviousServer() == null) {
 
                 SingularityConfig.getSyncGroup(server)
@@ -83,84 +81,85 @@ public class Velocity implements ProtoConnectionHandler {
 
     @Override
     public void onReady(ProtoConnection connection) {
-        ProtoProxy.getRegisteredServer(connection.getRemoteAddress()).ifPresent(s -> {
-            server = s;
-            SingularityConfig.getSyncGroup(server).ifPresent(group -> connection.send(group.getSettings()));
-        });
+        ProtoProxy.getRegisteredServer(connection.getRemoteAddress())
+                .flatMap(SingularityConfig::getSyncGroup)
+                .ifPresent(group -> connection.send(group.getSettings()));
     }
 
     @Override
     public void handlePacket(ProtoConnection connection, Object packet) {
-        switch (packet) {
-            // Handle a topic subscription
-            case Topic sub -> {
-                HashSet<Topic> topics = subs.getOrDefault(server, new HashSet<>());
-                topics.add(sub);
-                subs.put(server, topics);
-            }
-
-            // Process data bundle actions such as requesting and removing data
-            case DataBundle.Meta meta -> {
-                switch (meta.action()) {
-                    case GET -> SingularityConfig.getSyncGroup(server)
-                            .flatMap(store -> store.getTopicStore(meta.topic()).getContainer("id", meta.id()))
-                            .flatMap(c -> c.get(DATA_BUNDLE, "data"))
-                            .ifPresentOrElse(data -> connection.send(data.meta(meta)), () -> connection.send(meta));
-
-                    case REMOVE -> SingularityConfig.getSyncGroup(server)
-                            .flatMap(store -> store.getTopicStore(meta.topic()).getContainer("id", meta.id()))
-                            .ifPresent(DataContainer::delete);
-                }
-            }
-
-            case DataBundle bundle -> {
-                if (!DataBundle.Action.PUT.equals(bundle.meta().action())) return;
-                Topic topic = bundle.meta().topic();
-
-                Stream<ProtoServer> servers;
-                if (topic.global()) servers = ProtoProxy.getConnectedServers(WORMHOLE).stream();
-                else {
-                    Optional<SingularityConfig.SyncGroup> group = SingularityConfig.getSyncGroup(server);
-                    if (group.isEmpty()) return;
-                    servers = group.get().getServers().stream();
+        ProtoProxy.getConnectedServer(WORMHOLE, connection.getRemoteAddress()).ifPresent(server -> {
+            switch (packet) {
+                // Handle a topic subscription
+                case Topic sub -> {
+                    HashSet<Topic> topics = subs.getOrDefault(server, new HashSet<>());
+                    topics.add(sub);
+                    subs.put(server, topics);
                 }
 
-                // Forward data to subscribed servers
-                servers.filter(s -> !s.equals(server))
-                .filter(s ->  {
-                    DataBundle.Propagation propagation = bundle.meta().propagation();
-                    if (propagation.equals(DataBundle.Propagation.ALL)) return true;
-                    if (propagation.equals(DataBundle.Propagation.NONE)) return false;
+                // Process data bundle actions such as requesting and removing data
+                case DataBundle.Meta meta -> {
+                    switch (meta.action()) {
+                        case GET -> SingularityConfig.getSyncGroup(server)
+                                .flatMap(store -> store.getTopicStore(meta.topic()).getContainer("id", meta.id()))
+                                .flatMap(c -> c.get(DATA_BUNDLE, "data"))
+                                .ifPresentOrElse(data -> connection.send(data.meta(meta)), () -> connection.send(meta));
 
-                    // if propagation is set to PLAYER
-                    // TODO: This is maybe a race condition
-                    try {
-                        UUID player = UUID.fromString(bundle.meta().id());
-                        Optional<ProtoServer> location = Optional.ofNullable(playerLocations.get(player));
-                        return location.isPresent() && location.get().equals(s);
-                    } catch (IllegalArgumentException ignore) {
-                        return false;
+                        case REMOVE -> SingularityConfig.getSyncGroup(server)
+                                .flatMap(store -> store.getTopicStore(meta.topic()).getContainer("id", meta.id()))
+                                .ifPresent(DataContainer::delete);
                     }
-                })
-                .filter(s -> subs.getOrDefault(s, new HashSet<>()).contains(topic))
-                .forEach(s -> s.getConnection().send(bundle));
-
-                if (!bundle.meta().persist()) return;
-
-                // Store data in database
-                if (topic.global()) {
-                    SingularityConfig.getGlobalStore(topic)
-                            .getOrCreateDefaultContainer(JavaTypes.STRING, "id", bundle.meta().id())
-                            .put(DATA_BUNDLE, "data", bundle);
-                    return;
                 }
 
-                SingularityConfig.getSyncGroup(server)
-                        .ifPresent(store -> store.getTopicStore(topic)
+                case DataBundle bundle -> {
+                    if (!DataBundle.Action.PUT.equals(bundle.meta().action())) return;
+                    Topic topic = bundle.meta().topic();
+
+                    Stream<ProtoServer> servers;
+                    if (topic.global()) servers = ProtoProxy.getConnectedServers(WORMHOLE).stream();
+                    else {
+                        Optional<SingularityConfig.SyncGroup> group = SingularityConfig.getSyncGroup(server);
+                        if (group.isEmpty()) return;
+                        servers = group.get().getServers().stream();
+                    }
+
+                    // Forward data to subscribed servers
+                    servers.filter(s -> !s.equals(server))
+                            .filter(s ->  {
+                                DataBundle.Propagation propagation = bundle.meta().propagation();
+                                if (propagation.equals(DataBundle.Propagation.ALL)) return true;
+                                if (propagation.equals(DataBundle.Propagation.NONE)) return false;
+
+                                // if propagation is set to PLAYER
+                                // TODO: This is maybe a race condition
+                                try {
+                                    UUID player = UUID.fromString(bundle.meta().id());
+                                    Optional<ProtoServer> location = Optional.ofNullable(playerLocations.get(player));
+                                    return location.isPresent() && location.get().equals(s);
+                                } catch (IllegalArgumentException ignore) {
+                                    return false;
+                                }
+                            })
+                            .filter(s -> subs.getOrDefault(s, new HashSet<>()).contains(topic))
+                            .forEach(s -> s.getConnection().send(bundle));
+
+                    if (!bundle.meta().persist()) return;
+
+                    // Store data in database
+                    if (topic.global()) {
+                        SingularityConfig.getGlobalStore(topic)
                                 .getOrCreateDefaultContainer(JavaTypes.STRING, "id", bundle.meta().id())
-                                .put(DATA_BUNDLE, "data", bundle));
+                                .put(DATA_BUNDLE, "data", bundle);
+                        return;
+                    }
+
+                    SingularityConfig.getSyncGroup(server)
+                            .ifPresent(store -> store.getTopicStore(topic)
+                                    .getOrCreateDefaultContainer(JavaTypes.STRING, "id", bundle.meta().id())
+                                    .put(DATA_BUNDLE, "data", bundle));
+                }
+                default -> WORMHOLE.logWarn("Ignoring unknown packet: " + packet);
             }
-            default -> WORMHOLE.logWarn("Ignoring unknown packet: " + packet);
-        }
+        });
     }
 }
