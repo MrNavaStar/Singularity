@@ -67,13 +67,19 @@ public class Velocity implements ProtoConnectionHandler {
 
         // Send player data to subscribed servers and store player network location
         s.flatMap(current -> ProtoProxy.getConnectedServer(WORMHOLE, current.getServerInfo().getAddress())).ifPresent(server -> {
+            System.out.println("Player joining");
+
             if (event.getPreviousServer() == null) {
+                System.out.println("lets send their data to " + server);
 
                 SingularityConfig.getSyncGroup(server)
                         .flatMap(store -> store.getTopicStore(PLAYER_TOPIC).getContainer("id", player.toString()))
                         .flatMap(c -> c.get(DATA_BUNDLE, "data"))
                         .map(data -> data.meta(new DataBundle.Meta().id(player.toString()).topic(PLAYER_TOPIC).action(DataBundle.Action.PUT)))
-                        .ifPresent(data -> server.getConnection().send(data));
+                        .ifPresent(data -> {
+                            server.getConnection().send(data);
+                            System.out.println("Data : " + data);
+                        });
             }
             else playerLocations.put(player, server);
         });
@@ -88,7 +94,11 @@ public class Velocity implements ProtoConnectionHandler {
 
     @Override
     public void handlePacket(ProtoConnection connection, Object packet) {
+        System.out.println("Got packet from: " + connection + " of type: " + packet);
+
         ProtoProxy.getConnectedServer(WORMHOLE, connection.getRemoteAddress()).ifPresent(server -> {
+            System.out.println("Server " + server + " is connected, able to handle packet");
+
             switch (packet) {
                 // Handle a topic subscription
                 case Topic sub -> {
@@ -123,6 +133,8 @@ public class Velocity implements ProtoConnectionHandler {
                         servers = group.get().getServers().stream();
                     }
 
+                    System.out.println("got server list: " + servers);
+
                     // Forward data to subscribed servers
                     servers.filter(s -> !s.equals(server))
                             .filter(s ->  {
@@ -135,15 +147,24 @@ public class Velocity implements ProtoConnectionHandler {
                                 try {
                                     UUID player = UUID.fromString(bundle.meta().id());
                                     Optional<ProtoServer> location = Optional.ofNullable(playerLocations.get(player));
+
+                                    System.out.println("Player location found? : " + location.isPresent());
+                                    if (location.isPresent()) System.out.println("Player location: " + location.get());
+
                                     return location.isPresent() && location.get().equals(s);
                                 } catch (IllegalArgumentException ignore) {
                                     return false;
                                 }
                             })
                             .filter(s -> subs.getOrDefault(s, new HashSet<>()).contains(topic))
-                            .forEach(s -> s.getConnection().send(bundle));
+                            .forEach(s -> {
+                                System.out.println("forwarding data to:" + s);
+                                s.getConnection().send(bundle);
+                            });
 
                     if (!bundle.meta().persist()) return;
+
+                    System.out.println("Storing packet data");
 
                     // Store data in database
                     if (topic.global()) {
