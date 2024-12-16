@@ -8,6 +8,7 @@ import com.velocitypowered.api.event.player.ServerPreConnectEvent;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.plugin.Dependency;
 import com.velocitypowered.api.plugin.Plugin;
+import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import me.mrnavastar.protoweaver.api.ProtoConnectionHandler;
 import me.mrnavastar.protoweaver.api.ProtoWeaver;
@@ -87,19 +88,27 @@ public class Velocity implements ProtoConnectionHandler {
 
     @Override
     public void onReady(ProtoConnection connection) {
-        //System.out.println("ON READY");
-        //System.out.println(ProtoProxy.getConnectedServer(WORMHOLE, connection.));
-
-        ProtoProxy.getRegisteredServer(connection.getRemoteAddress())
+        ProtoProxy.getConnectedServer(WORMHOLE, connection.getRemoteAddress())
                 .flatMap(SingularityConfig::getSyncGroup)
-                .ifPresent(group -> connection.send(group.getSettings()));
+                .ifPresent(group -> {
+                    connection.send(group.getSettings());
+                    System.out.println("settings send to " + connection.getRemoteAddress());
+                });
     }
 
     @Override
     public void handlePacket(ProtoConnection connection, Object packet) {
         System.out.println("Got packet from: " + connection + " of type: " + packet);
 
-        ProtoProxy.getRegisteredServer(connection.getRemoteAddress()).ifPresent(server -> {
+        System.out.println();
+        ProtoProxy.getRegisteredServers().forEach(server -> {
+            System.out.println(server);
+            System.out.println(connection.getRemoteAddress());
+            System.out.println(server.getAddress().equals(connection.getRemoteAddress()));
+        });
+        System.out.println();
+
+        ProtoProxy.getConnectedServer(WORMHOLE, connection.getRemoteAddress()).ifPresent(server -> {
             System.out.println("Server " + server + " is connected, able to handle packet");
 
             switch (packet) {
