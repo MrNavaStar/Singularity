@@ -134,7 +134,7 @@ public class SynchronizedMinecraft {
 
     protected static DataBundle createPlayerDataBundle(ServerPlayer player) {
         DataBundle data = new DataBundle();
-        data.meta().propagation(DataBundle.Propagation.NEXT_SERVER);
+        data.meta().propagation(DataBundle.Propagation.PLAYER);
         Singularity.SEND_DATA.getInvoker().trigger(player, data);
         return data;
     }

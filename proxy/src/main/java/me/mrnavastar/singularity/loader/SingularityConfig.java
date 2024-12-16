@@ -1,5 +1,6 @@
 package me.mrnavastar.singularity.loader;
 
+import com.google.common.collect.Sets;
 import lombok.Getter;
 import me.mrnavastar.protoweaver.proxy.api.ProtoProxy;
 import me.mrnavastar.protoweaver.proxy.api.ProtoServer;
@@ -19,32 +20,38 @@ import java.util.concurrent.ConcurrentHashMap;
 public class SingularityConfig {
 
     @Getter
-    public static class GroupStore {
-        private final String groupName;
+    public static class SyncGroup {
+        private final String name;
+        private final Set<ProtoServer> servers = Sets.newConcurrentHashSet();
+        private final Settings settings;
         private final ConcurrentHashMap<String, DataStore> topics = new ConcurrentHashMap<>();
 
-        public GroupStore(String groupName) {
-            this.groupName = groupName;
-            topics.put(Constants.PLAYER_TOPIC, SQLib.getDatabase().dataStore(Constants.SINGULARITY_ID,  "static_" + groupName + "_player_data"));
+        public SyncGroup(String name, Settings settings) {
+            this.name = name;
+            this.settings = settings;
+            topics.put(Constants.PLAYER_TOPIC, SQLib.getDatabase().dataStore(Constants.SINGULARITY_ID,  "static_" + name + "_player_data"));
         }
 
-        public GroupStore() {
-            this.groupName = "default";
+        public SyncGroup() {
+            this.name = "default";
+            this.settings = new Settings();
             topics.put(Constants.PLAYER_TOPIC, SQLib.getDatabase().dataStore(Constants.SINGULARITY_ID,  "default_player_data"));
+        }
+
+        public void addServer(ProtoServer server) {
+            servers.add(server);
         }
 
         public DataStore getTopicStore(Topic topic) {
             return Optional.ofNullable(topics.get(topic.topic())).orElseGet(() -> {
-                DataStore store = SQLib.getDatabase().dataStore(Constants.SINGULARITY_ID,  "static_" + groupName + "_" + topic.databaseKey());
+                DataStore store = SQLib.getDatabase().dataStore(Constants.SINGULARITY_ID,  "static_" + name + "_" + topic.databaseKey());
                 topics.put(topic.topic(), store);
                 return store;
             });
         }
     }
 
-    private static final ConcurrentHashMap<ProtoServer, String> groups = new ConcurrentHashMap<>();
-    private static final ConcurrentHashMap<ProtoServer, Settings> settings = new ConcurrentHashMap<>();
-    private static final ConcurrentHashMap<String, GroupStore> groupStores = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, SyncGroup> groups = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<String, DataStore> globalStores = new ConcurrentHashMap<>();
     private static final ArrayList<String> blacklists = new ArrayList<>();
 
@@ -60,12 +67,8 @@ public class SingularityConfig {
         registerBlacklist("singularity.xp");
     }
 
-    public static Optional<Settings> getServerSettings(ProtoServer server) {
-        return Optional.ofNullable(settings.get(server));
-    }
-
-    public static Optional<GroupStore> getServerStore(ProtoServer server) {
-        return Optional.ofNullable(groups.get(server)).map(groupStores::get);
+    public static Optional<SyncGroup> getSyncGroup(ProtoServer server) {
+        return groups.values().stream().filter(group -> group.getServers().contains(server)).findFirst();
     }
 
     public static DataStore getGlobalStore(Topic topic) {
@@ -74,12 +77,6 @@ public class SingularityConfig {
             globalStores.put(topic.topic(), store);
             return store;
         });
-    }
-
-    public static List<ProtoServer> getSameGroup(ProtoServer server) {
-         return Optional.ofNullable(groups.get(server))
-                 .map(mainGroup -> groups.entrySet().stream().filter(entry -> entry.getValue().equals(mainGroup) && !entry.getKey().equals(server))
-                    .map(Map.Entry::getKey).toList()).orElseGet(ArrayList::new);
     }
 
     public static void registerBlacklist(String name) {
@@ -117,25 +114,21 @@ public class SingularityConfig {
                         if (s.get("singularity.whitelist") instanceof Boolean enabled) groupSettings.syncWhitelist = enabled;
                         if (s.get("singularity.bans") instanceof Boolean enabled) groupSettings.syncBans = enabled;
 
-                        groupStores.put(groupName, new GroupStore(groupName));
+                        SyncGroup store = new SyncGroup(groupName, groupSettings);
+                        groups.put("config_" + groupName, store);
 
                         ProtoProxy.getRegisteredServers().stream()
                                 .filter(server -> List.of(servers.split("\n")).contains(server.getName()))
-                                .forEach(server -> {
-                                    settings.put(server, groupSettings);
-                                    groups.put(server, "config_" + groupName);
-                                });
+                                .forEach(store::addServer);
                     });
                 });
             });
         } catch (FileNotFoundException ignore) {
             logger.info("No config found, loading defaults");
 
-            groupStores.put("default", new GroupStore());
-            ProtoProxy.getRegisteredServers().forEach(server -> {
-                settings.put(server, new Settings().setDefault());
-                groups.put(server, "default");
-            });
+            SyncGroup group = new SyncGroup();
+            groups.put(group.getName(), group);
+            ProtoProxy.getRegisteredServers().forEach(group::addServer);
         }
     }
 }

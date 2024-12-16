@@ -27,7 +27,7 @@ public class DataBundle {
 
     public enum Propagation {
         ALL,
-        NEXT_SERVER,
+        PLAYER,
         NONE
     }
 
@@ -40,6 +40,7 @@ public class DataBundle {
         private Action action = Action.NONE;
         private Topic topic;
         private Propagation propagation = Propagation.ALL;
+        private boolean persist = true;
     }
 
     private static final ObjectSerializer serializer = new ObjectSerializer();
