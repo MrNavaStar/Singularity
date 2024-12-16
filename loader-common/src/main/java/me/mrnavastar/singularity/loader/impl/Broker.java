@@ -29,13 +29,6 @@ public class Broker implements ProtoConnectionHandler {
     @Getter private static Settings settings = new Settings();
     @Getter private static ProtoConnection proxy;
 
-    private static void syncSubs() {
-        subscriptions.forEach((sub, callbacks) -> {
-            if (proxy == null || !proxy.isOpen()) outgoingMessageQueue.add(sub);
-            else proxy.send(sub);
-        });
-    }
-
     private static void putTopic(Topic topic, String id, DataBundle bundle) {
         topic.validate();
         bundle.meta().id(id).topic(topic).action(DataBundle.Action.PUT);
@@ -102,7 +95,9 @@ public class Broker implements ProtoConnectionHandler {
         HashSet<Consumer<DataBundle>> handlers = subscriptions.getOrDefault(topic, new HashSet<>());
         handlers.add(handler);
         subscriptions.put(topic, handlers);
-        syncSubs();
+
+        if (proxy == null || !proxy.isOpen()) outgoingMessageQueue.add(topic);
+        else proxy.send(topic);
     }
 
     public static void subTopic(String topic, Consumer<DataBundle> handler) {
@@ -115,7 +110,6 @@ public class Broker implements ProtoConnectionHandler {
 
     public void onReady(ProtoConnection protoConnection) {
         proxy = protoConnection;
-        syncSubs();
         while (!outgoingMessageQueue.isEmpty()) proxy.send(outgoingMessageQueue.remove());
     }
 

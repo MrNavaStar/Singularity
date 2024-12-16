@@ -68,12 +68,7 @@ public class SingularityConfig {
     }
 
     public static Optional<SyncGroup> getSyncGroup(ProtoServer server) {
-        System.out.println("Sync Group in: " + server);
-
-        Optional<SyncGroup> g =groups.values().stream().filter(group -> group.getServers().contains(server)).findFirst();
-
-        System.out.println(g);
-        return g;
+        return groups.values().stream().filter(group -> group.getServers().contains(server)).findFirst();
     }
 
     public static DataStore getGlobalStore(Topic topic) {

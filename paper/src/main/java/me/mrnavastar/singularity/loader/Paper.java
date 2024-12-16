@@ -44,7 +44,7 @@ public class Paper extends JavaPlugin {
         public void onPlayerJoin(PlayerJoinEvent event) {
             ServerPlayer player = ((CraftPlayer) event.getPlayer()).getHandle();
             onJoin(player);
-            player.valid = !player.valid;
+            //player.valid = !player.valid;
         }
 
         @EventHandler
@@ -63,7 +63,7 @@ public class Paper extends JavaPlugin {
             SpigotConfig.disableStatSaving = settings.syncPlayerStats;
             SpigotConfig.disableAdvancementSaving = settings.syncPlayerAdvancements;
         });
-        SynchronizedMinecraft.setPlayerCallback(player -> player.valid = !player.valid);
+        //SynchronizedMinecraft.setPlayerCallback(player -> player.valid = !player.valid);
         getServer().getPluginManager().registerEvents(new EventListener(getDataPath()), this);
     }
 }
