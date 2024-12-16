@@ -87,6 +87,9 @@ public class Velocity implements ProtoConnectionHandler {
 
     @Override
     public void onReady(ProtoConnection connection) {
+        System.out.println("ON READY");
+        System.out.println(ProtoProxy.getConnectedServer(WORMHOLE, connection.getRemoteAddress()));
+
         ProtoProxy.getRegisteredServer(connection.getRemoteAddress())
                 .flatMap(SingularityConfig::getSyncGroup)
                 .ifPresent(group -> connection.send(group.getSettings()));
@@ -95,6 +98,8 @@ public class Velocity implements ProtoConnectionHandler {
     @Override
     public void handlePacket(ProtoConnection connection, Object packet) {
         System.out.println("Got packet from: " + connection + " of type: " + packet);
+
+        System.out.println(ProtoProxy.getConnectedServer(WORMHOLE, connection.getRemoteAddress()));
 
         ProtoProxy.getConnectedServer(WORMHOLE, connection.getRemoteAddress()).ifPresent(server -> {
             System.out.println("Server " + server + " is connected, able to handle packet");
