@@ -17,7 +17,7 @@ public class Commands {
     public static void register(CommandManager commandManager, Velocity velocity) {
         CommandMeta commandMeta = commandManager.metaBuilder("singularity").plugin(velocity).build();
         BrigadierCommand command = new BrigadierCommand(BrigadierCommand.literalArgumentBuilder("singularity")
-                .requires(source -> source.hasPermission("singularity.commands"))
+                //.requires(source -> source.hasPermission("singularity.commands"))
                 .then(BrigadierCommand.literalArgumentBuilder("config")
                         .executes(Commands::config)
                         .then(BrigadierCommand.requiredArgumentBuilder("group", StringArgumentType.string())
@@ -34,18 +34,23 @@ public class Commands {
         return 1;
     }
 
+    private static Component getSetting(String setting, boolean value) {
+        String color = value ? "green" : "red";
+        return MiniMessage.miniMessage().deserialize(String.format("\n%s : <%s>%b</%s>", setting, color, value, color));
+    }
+
     private static int settings(CommandContext<CommandSource> ctx, String name) {
         SingularityConfig.getGroup(name).ifPresent(group -> {
             Settings settings = group.getSettings();
             ComponentBuilder<TextComponent, TextComponent.Builder> builder = Component.text();
             builder.append(group.getPrettyName());
-            builder.append(MiniMessage.miniMessage().deserialize(String.format("\nsingularity.player : %s", settings.syncPlayerData)));
-            builder.append(MiniMessage.miniMessage().deserialize(String.format("\nsingularity.stats : %s", settings.syncPlayerStats)));
-            builder.append(MiniMessage.miniMessage().deserialize(String.format("\nsingularity.advancements : %s", settings.syncPlayerAdvancements)));
-            builder.append(MiniMessage.miniMessage().deserialize(String.format("\nsingularity.ops : %s", settings.syncOps)));
-            builder.append(MiniMessage.miniMessage().deserialize(String.format("\nsingularity.whitelist : %s", settings.syncWhitelist)));
-            builder.append(MiniMessage.miniMessage().deserialize(String.format("\nsingularity.bans : %s", settings.syncBans)));
-            SingularityConfig.getRegisteredBlacklists().forEach(blacklist -> builder.append(MiniMessage.miniMessage().deserialize(String.format("\n%s : %s", blacklist, !settings.nbtBlacklists.contains(blacklist)))));
+            builder.append(getSetting("singularity.player", settings.syncPlayerData));
+            builder.append(getSetting("singularity.stats", settings.syncPlayerStats));
+            builder.append(getSetting("singularity.advancements", settings.syncPlayerAdvancements));
+            builder.append(getSetting("singularity.ops", settings.syncOps));
+            builder.append(getSetting("singularity.whitelist", settings.syncWhitelist));
+            builder.append(getSetting("singularity.bans", settings.syncBans));
+            SingularityConfig.getRegisteredBlacklists().forEach(blacklist -> builder.append(getSetting(blacklist, !settings.nbtBlacklists.contains(blacklist))));
             ctx.getSource().sendMessage(builder.build());
         });
         return 1;

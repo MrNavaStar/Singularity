@@ -68,7 +68,10 @@ public class SingularityConfig {
         public Component getPretty() {
             ComponentBuilder<TextComponent, TextComponent.Builder> builder = Component.text();
             builder.append(getPrettyName());
-            servers.forEach(server -> builder.append(MiniMessage.miniMessage().deserialize(String.format("\n• <i>%s</i> : <red>%s</red>", server.getName(), server.getAddress()))));
+            servers.forEach(server -> {
+                String color = server.isConnected() ? "green" : "red";
+                builder.append(MiniMessage.miniMessage().deserialize(String.format("\n• <i>%s</i> : <%s>%s</%s>", server.getName(), color, server.getAddress(), color)));
+            });
             return builder.build();
         }
     }
