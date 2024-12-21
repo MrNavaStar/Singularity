@@ -65,12 +65,7 @@ public class Broker implements ProtoConnectionHandler {
         ProtoProxy.getConnectedServer(connection).ifPresent(server -> {
             switch (packet) {
                 // Handle a topic subscription
-                case Topic sub -> {
-                    System.out.println(sub);
-                    subscriptions.computeIfAbsent(sub, k -> Sets.newConcurrentHashSet()).add(server);
-                    System.out.println("added topic, new size:" + subscriptions.size());
-                    System.out.println(subscriptions.get(sub).size());
-                }
+                case Topic sub -> subscriptions.computeIfAbsent(sub, k -> Sets.newConcurrentHashSet()).add(server);
                 // Process data bundle actions such as requesting and removing data
                 case DataBundle.Meta meta -> {
                     switch (meta.action()) {
@@ -88,46 +83,20 @@ public class Broker implements ProtoConnectionHandler {
                 case DataBundle bundle -> {
                     if (!DataBundle.Action.PUT.equals(bundle.meta().action())) return;
 
-                    System.out.println("Got data bundle from server");
-                    System.out.println(bundle);
                     // Run expensive lookups outside the filters
                     Set<ProtoServer> group = SingularityConfig.getSyncGroup(server).map(SingularityConfig.SyncGroup::getServers).orElse(new HashSet<>());
                     Optional<ProtoServer> location = Velocity.getPlayerLocation(bundle);
 
-                    System.out.println(group);
-                    System.out.println(location);
-
-                    System.out.println(bundle.meta().topic());
-                    System.out.println(subscriptions.getOrDefault(bundle.meta().topic(), new HashSet<>()));
-
                     subscriptions.getOrDefault(bundle.meta().topic(), new HashSet<>()).stream()     // Grab all servers subbed to this topic
-                            .filter(s -> {
-                                System.out.println("gahh");
-                                System.out.println(!Objects.equals(s, server));
-                                return  !Objects.equals(s, server);
-                            })                                // Filter out the server the packet was received from
-                            .filter(s -> {
-                                System.out.println(bundle.meta().topic().global() || group.contains(s));
-                              return  bundle.meta().topic().global() || group.contains(s);
-                            })       // Filter out any servers that aren't part of the current sync group unless the topic is global
-                            .filter(s -> {
-                                System.out.println("here?");
-                                // Filter out servers based on propagation rules
+                            .filter(s -> !Objects.equals(s, server))                                // Filter out the server the packet was received from
+                            .filter(s -> bundle.meta().topic().global() || group.contains(s))       // Filter out any servers that aren't part of the current sync group unless the topic is global
+                            .filter(s -> {                                                          // Filter out servers based on propagation rules
                                 if (bundle.meta().propagation().equals(DataBundle.Propagation.ALL)) return true;
                                 if (bundle.meta().propagation().equals(DataBundle.Propagation.NONE)) return false;
-
-                                System.out.println("Propagation is set to PLAYER");
-
-                                System.out.println("Player Location:" + location);
-                                System.out.println("Server: " + s);
-
                                 // Propagation type must be PLAYER
                                 return location.isPresent() && Objects.equals(location.get(), s);
                             })
-                            .forEach(s -> {
-                                System.out.println("sending to: " + s);
-                                s.getConnection(PROTOCOL).ifPresent(con -> con.send(bundle));
-                            });
+                            .forEach(s -> s.getConnection(PROTOCOL).ifPresent(con -> con.send(bundle)));
 
                     if (bundle.meta().persist()) storeBundle(server, bundle);
                 }
