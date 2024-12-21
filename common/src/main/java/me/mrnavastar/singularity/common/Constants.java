@@ -23,7 +23,8 @@ public class Constants {
             .setMaxConnections(1)
             .addPacket(Settings.class)
             .addPacket(DataBundle.class)
-            .addPacket(Topic.class);
+            .addPacket(Topic.class)
+            .addPacket(Topic.Behaviour.class);
 
     public static final String PLAYER_TOPIC = SINGULARITY_ID + ":player";
 

@@ -37,7 +37,6 @@ public class SingularityConfig {
             this.name = name;
             this.settings = new Settings().setDefault();
             this.patterns = Arrays.stream(patterns).map(Pattern::compile).collect(Collectors.toSet());
-            this.topics.put(Constants.PLAYER_TOPIC, SQLib.getDatabase().dataStore(Constants.SINGULARITY_ID,  "static_" + name + "_player_data"));
         }
 
         private void add(ProtoServer server) {
@@ -61,13 +60,14 @@ public class SingularityConfig {
             });
         }
 
-        public Component getPrettyName() {
-            return MiniMessage.miniMessage().deserialize((String.format("\n---------------- [ <click:run_command:'/singularity config %s'><blue>%s</blue></click> ] ----------------", name, name)));
+        public Component getPrettyName(boolean clickable) {
+            String click = clickable ? String.format("<click:run_command:'/singularity config %s'>", name) : "<click:run_command:>";
+            return MiniMessage.miniMessage().deserialize((String.format("\n---------------- [ %s<blue>%s</blue></click> ] ----------------", click, name)));
         }
 
         public Component getPretty() {
             ComponentBuilder<TextComponent, TextComponent.Builder> builder = Component.text();
-            builder.append(getPrettyName());
+            builder.append(getPrettyName(true));
             servers.forEach(server -> {
                 String color = server.isConnected(Broker.PROTOCOL) ? "green" : "red";
                 builder.append(MiniMessage.miniMessage().deserialize(String.format("\n• <i>%s</i> : <%s>%s</%s>", server.getName(), color, server.getAddress(), color)));

@@ -96,8 +96,7 @@ public class Broker implements ProtoConnectionHandler {
         handlers.add(handler);
         subscriptions.put(topic, handlers);
 
-        if (proxy == null || !proxy.isOpen()) outgoingMessageQueue.add(topic);
-        else proxy.send(topic);
+        if (proxy != null && proxy.isOpen()) proxy.send(topic);
     }
 
     public static void subTopic(String topic, Consumer<DataBundle> handler) {
@@ -118,6 +117,9 @@ public class Broker implements ProtoConnectionHandler {
 
     public void onReady(ProtoConnection protoConnection) {
         proxy = protoConnection;
+        // Update subscriptions in case proxy was rebooted
+        subscriptions.forEach((sub, handler) -> proxy.send(sub));
+        // Send out any messages that have been queuing up while proxy has been unavailable
         while (!outgoingMessageQueue.isEmpty()) proxy.send(outgoingMessageQueue.remove());
     }
 

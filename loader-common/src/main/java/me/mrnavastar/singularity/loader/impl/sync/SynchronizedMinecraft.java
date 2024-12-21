@@ -2,6 +2,7 @@ package me.mrnavastar.singularity.loader.impl.sync;
 
 import lombok.Setter;
 import lombok.SneakyThrows;
+import me.mrnavastar.protoweaver.core.util.ObjectSerializer;
 import me.mrnavastar.r.R;
 import me.mrnavastar.singularity.common.Constants;
 import me.mrnavastar.singularity.common.networking.DataBundle;
@@ -41,26 +42,8 @@ public class SynchronizedMinecraft {
         //SynchronizedWhiteList.install(server);
         //SynchronizedBanList.install(server);
 
-        // whitelist is handled by the proxy
-        server.setEnforceWhitelist(false);
-
         DataBundle.register(Date.class);
         // Register NBT Types
-        DataBundle.register(ByteArrayTag.class);
-        DataBundle.register(ByteTag.class);
-        DataBundle.register(CollectionTag.class);
-        DataBundle.register(CompoundTag.class);
-        DataBundle.register(DoubleTag.class);
-        DataBundle.register(EndTag.class);
-        DataBundle.register(FloatTag.class);
-        DataBundle.register(IntArrayTag.class);
-        DataBundle.register(IntTag.class);
-        DataBundle.register(ListTag.class);
-        DataBundle.register(LongArrayTag.class);
-        DataBundle.register(LongTag.class);
-        DataBundle.register(NumericTag.class);
-        DataBundle.register(ShortTag.class);
-        DataBundle.register(StringTag.class);
 
         importPlayerData(Path.of(importPath + "/import_playerdata"));
         reloadBlacklists();
@@ -74,19 +57,43 @@ public class SynchronizedMinecraft {
             if (!Broker.getSettings().syncPlayerData) return;
             CompoundTag nbt = new CompoundTag();
             player.saveWithoutId(nbt);
-            data.put(Constants.PLAYER_TOPIC + ":nbt", nbt);
+
+
+            try {
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                NbtIo.writeCompressed(nbt, baos);
+
+                data.put(Constants.PLAYER_TOPIC + ":nbt", baos.toByteArray());
+                baos.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+
+
         }));
 
         Singularity.POST_RECEIVE_PLAYER_DATA.register(((player, data) -> {
             if (!Broker.getSettings().syncPlayerData) return;
-            data.get(Constants.PLAYER_TOPIC + ":nbt", CompoundTag.class).ifPresent(nbt -> {
-                CompoundTag current = new CompoundTag();
-                player.saveWithoutId(current);
-                nbtBlacklist.forEach(key -> {
-                    if (!current.contains(key)) return;
-                    Optional.ofNullable(current.get(key)).ifPresent(tag -> nbt.put(key, tag));
-                });
-                player.load(nbt);
+            data.get(Constants.PLAYER_TOPIC + ":nbt", byte[].class).ifPresent(nbt -> {
+
+
+                try {
+                    ByteArrayInputStream istream = new ByteArrayInputStream(nbt);
+                    CompoundTag newData = NbtIo.readCompressed(istream, NbtAccounter.unlimitedHeap());
+
+                    CompoundTag current = new CompoundTag();
+                    player.saveWithoutId(current);
+                    nbtBlacklist.forEach(key -> {
+                        if (!current.contains(key)) return;
+                        Optional.ofNullable(current.get(key)).ifPresent(tag -> newData.put(key, tag));
+                    });
+                    player.load(newData);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+
+
+
             });
         }));
 

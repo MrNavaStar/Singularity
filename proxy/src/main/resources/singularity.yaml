@@ -1,4 +1,3 @@
 groups:
-  # Start your string with 'r:' to use regex to match servers
   default: | 
     .*

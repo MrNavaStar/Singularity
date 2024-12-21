@@ -43,7 +43,7 @@ public class Commands {
         SingularityConfig.getGroup(name).ifPresent(group -> {
             Settings settings = group.getSettings();
             ComponentBuilder<TextComponent, TextComponent.Builder> builder = Component.text();
-            builder.append(group.getPrettyName());
+            builder.append(group.getPrettyName(false));
             builder.append(getSetting("singularity.player", settings.syncPlayerData));
             builder.append(getSetting("singularity.stats", settings.syncPlayerStats));
             builder.append(getSetting("singularity.advancements", settings.syncPlayerAdvancements));
