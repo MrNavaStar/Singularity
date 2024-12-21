@@ -19,7 +19,7 @@ import java.util.function.Consumer;
 
 public class Broker implements ProtoConnectionHandler {
 
-    public static final Protocol PROTOCOL = Constants.WORMHOLE.setServerHandler(Broker.class).build();
+    public static final Protocol PROTOCOL = Constants.PROTOCOL.setServerHandler(Broker.class).build();
 
     private static final ConcurrentLinkedQueue<Object> outgoingMessageQueue = new ConcurrentLinkedQueue<>();
     private static final ConcurrentHashMap<DataBundle.Meta, CompletableFuture<Optional<DataBundle>>> pendingRequests = new ConcurrentHashMap<>();
@@ -38,11 +38,11 @@ public class Broker implements ProtoConnectionHandler {
     }
 
     public static void putTopic(String topic, String id, DataBundle bundle) {
-        putTopic(new Topic(topic, false), id, bundle);
+        putTopic(new Topic(topic, Topic.Behaviour.NONE, false), id, bundle);
     }
 
     public static void putGlobalTopic(String topic, String id, DataBundle bundle) {
-        putTopic(new Topic(topic, true), id, bundle);
+        putTopic(new Topic(topic, Topic.Behaviour.NONE, true), id, bundle);
     }
 
     private static void removeTopic(Topic topic, String id) {
@@ -56,11 +56,11 @@ public class Broker implements ProtoConnectionHandler {
     }
 
     public static void removeTopic(String topic, String id) {
-        removeTopic(new Topic(topic, false), id);
+        removeTopic(new Topic(topic, Topic.Behaviour.NONE, false), id);
     }
 
     public static void removeGlobalTopic(String topic, String id) {
-        removeTopic(new Topic(topic, true), id);
+        removeTopic(new Topic(topic, Topic.Behaviour.NONE, true), id);
     }
 
     private static CompletableFuture<Optional<DataBundle>> getTopic(Topic topic, String id) {
@@ -83,11 +83,11 @@ public class Broker implements ProtoConnectionHandler {
     }
 
     public static CompletableFuture<Optional<DataBundle>> getTopic(String topic, String id) {
-        return getTopic(new Topic(topic, false), id);
+        return getTopic(new Topic(topic, Topic.Behaviour.NONE, false), id);
     }
 
     public static CompletableFuture<Optional<DataBundle>> getGlobalTopic(String topic, String id) {
-        return getTopic(new Topic(topic, true), id);
+        return getTopic(new Topic(topic, Topic.Behaviour.NONE, true), id);
     }
 
     private static void subTopic(Topic topic, Consumer<DataBundle> handler) {
@@ -101,11 +101,19 @@ public class Broker implements ProtoConnectionHandler {
     }
 
     public static void subTopic(String topic, Consumer<DataBundle> handler) {
-        subTopic(new Topic(topic, false), handler);
+        subTopic(new Topic(topic, Topic.Behaviour.NONE, false), handler);
+    }
+
+    public static void subTopic(String topic, Topic.Behaviour behaviour, Consumer<DataBundle> handler) {
+        subTopic(new Topic(topic, behaviour, false), handler);
     }
 
     public static void subGlobalTopic(String topic, Consumer<DataBundle> handler) {
-        subTopic(new Topic(topic, true), handler);
+        subTopic(new Topic(topic, Topic.Behaviour.NONE, true), handler);
+    }
+
+    public static void subGlobalTopic(String topic, Topic.Behaviour behaviour, Consumer<DataBundle> handler) {
+        subTopic(new Topic(topic, behaviour, true), handler);
     }
 
     public void onReady(ProtoConnection protoConnection) {

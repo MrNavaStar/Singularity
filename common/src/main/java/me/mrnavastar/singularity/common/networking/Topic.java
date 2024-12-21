@@ -1,6 +1,11 @@
 package me.mrnavastar.singularity.common.networking;
 
-public record Topic(String topic, boolean global) {
+public record Topic(String topic, Behaviour behaviour, boolean global) {
+
+    public enum Behaviour {
+        PLAYER,
+        NONE,
+    }
 
     public String databaseKey() {
         return topic.replace(":", "_");

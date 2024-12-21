@@ -34,10 +34,10 @@ Get the latest dev build from [here!](https://github.com/MrNavaStar/Singularity/
 - [ ] External database support
 
 # Config
-To configure singularity, create a singularity.yml file under `plugins/singularity` on your velocity instance. 
+To configure singularity, create a singularity.yaml file under `plugins/singularity` on your velocity instance. 
 
 Example config:
-```yml
+```yaml
 # Define your sync groups. Data will only be synced between servers in the same group
 # Server names are as defined in your velocity.toml
 groups:

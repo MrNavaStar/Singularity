@@ -5,6 +5,7 @@ import lombok.SneakyThrows;
 import me.mrnavastar.r.R;
 import me.mrnavastar.singularity.common.Constants;
 import me.mrnavastar.singularity.common.networking.DataBundle;
+import me.mrnavastar.singularity.common.networking.Topic;
 import me.mrnavastar.singularity.loader.api.Singularity;
 import me.mrnavastar.singularity.loader.impl.Broker;
 import me.mrnavastar.singularity.loader.util.Mappings;
@@ -65,18 +66,18 @@ public class SynchronizedMinecraft {
         reloadBlacklists();
 
         // Listen for player data from velocity
-        Broker.subTopic(Constants.PLAYER_TOPIC, data -> Optional.ofNullable(server.getPlayerList().getPlayer(UUID.fromString(data.meta().id())))
+        Broker.subTopic(Constants.PLAYER_TOPIC, Topic.Behaviour.PLAYER, data -> Optional.ofNullable(server.getPlayerList().getPlayer(UUID.fromString(data.meta().id())))
                 .ifPresentOrElse(player -> processData(player, data), () -> incoming.put(UUID.fromString(data.meta().id()), data)));
 
         // Player Data
-        Singularity.SEND_DATA.register(((player, data) -> {
+        Singularity.PRE_PUSH_PLAYER_DATA.register(((player, data) -> {
             if (!Broker.getSettings().syncPlayerData) return;
             CompoundTag nbt = new CompoundTag();
             player.saveWithoutId(nbt);
             data.put(Constants.PLAYER_TOPIC + ":nbt", nbt);
         }));
 
-        Singularity.RECEIVE_DATA.register(((player, data) -> {
+        Singularity.POST_RECEIVE_PLAYER_DATA.register(((player, data) -> {
             if (!Broker.getSettings().syncPlayerData) return;
             data.get(Constants.PLAYER_TOPIC + ":nbt", CompoundTag.class).ifPresent(nbt -> {
                 CompoundTag current = new CompoundTag();
@@ -103,11 +104,11 @@ public class SynchronizedMinecraft {
         });*/
 
         // Player Stats
-        Singularity.SEND_DATA.register((player, data) -> {
+        Singularity.PRE_PUSH_PLAYER_DATA.register((player, data) -> {
             if (!Broker.getSettings().syncPlayerStats) return;
             data.put(Constants.PLAYER_STATS, R.of(player.getStats()).call(Mappings.of("toJson", "method_14911"), String.class));
         });
-        Singularity.RECEIVE_DATA.register((player, data) -> {
+        Singularity.POST_RECEIVE_PLAYER_DATA.register((player, data) -> {
             if (!Broker.getSettings().syncPlayerStats) return;
             data.get(Constants.PLAYER_STATS, String.class).ifPresent(stats -> player.getStats().parseLocal(server.getFixerUpper(), stats));
         });
@@ -135,7 +136,7 @@ public class SynchronizedMinecraft {
     protected static DataBundle createPlayerDataBundle(ServerPlayer player) {
         DataBundle data = new DataBundle();
         data.meta().propagation(DataBundle.Propagation.PLAYER);
-        Singularity.SEND_DATA.getInvoker().trigger(player, data);
+        Singularity.PRE_PUSH_PLAYER_DATA.getInvoker().trigger(player, data);
         return data;
     }
 
@@ -177,7 +178,7 @@ public class SynchronizedMinecraft {
 
     protected static void processData(ServerPlayer player, DataBundle data) {
         if (playerCallback != null) playerCallback.accept(player);
-        Singularity.RECEIVE_DATA.getInvoker().trigger(player, data);
+        Singularity.POST_RECEIVE_PLAYER_DATA.getInvoker().trigger(player, data);
         if (playerCallback != null) playerCallback.accept(player);
     }
 
