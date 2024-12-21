@@ -36,7 +36,7 @@ public class Broker implements ProtoConnectionHandler {
                 .flatMap(store -> store.getTopicStore(topic).getContainer("id", id))
                 .flatMap(c -> c.get(DATA_BUNDLE, "data"))
                 .map(data -> data.meta(new DataBundle.Meta().id(id).topic(topic).action(DataBundle.Action.PUT)))
-                .ifPresent(data -> server.getConnection().send(data));
+                .ifPresent(data -> server.getConnection(PROTOCOL).ifPresent(con -> con.send(data)));
     }
 
     private void storeBundle(ProtoServer server, DataBundle bundle) {
@@ -96,7 +96,7 @@ public class Broker implements ProtoConnectionHandler {
                                 // Propagation type must be PLAYER
                                 return location.isPresent() && Objects.equals(location.get(), s);
                             })
-                            .forEach(s -> s.getConnection().send(bundle));
+                            .forEach(s -> s.getConnection(PROTOCOL).ifPresent(con -> con.send(bundle)));
 
                     if (bundle.meta().persist()) storeBundle(server, bundle);
                 }
