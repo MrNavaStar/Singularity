@@ -6,6 +6,7 @@ import me.mrnavastar.r.R;
 import me.mrnavastar.singularity.common.Constants;
 import me.mrnavastar.singularity.common.networking.DataBundle;
 import me.mrnavastar.singularity.loader.impl.Broker;
+import me.mrnavastar.singularity.loader.impl.serialization.StoredUserEntrySerializer;
 import me.mrnavastar.singularity.loader.util.Mappings;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
@@ -74,6 +75,7 @@ public class SynchronizedWhiteList extends UserWhiteList {
     }
 
     public static void install(MinecraftServer server) {
+        DataBundle.register(StoredUserEntrySerializer.class);
         R.of(server.getPlayerList()).set(Mappings.of("whitelist", "field_14361"), new SynchronizedWhiteList());
         Broker.subTopic(Constants.WHITELIST, bundle -> {
             if (bundle.meta().id().equals("enabled")) {

@@ -25,7 +25,7 @@ public class Broker implements ProtoConnectionHandler {
 
     private static final Gson GSON = new Gson();
     public static final Protocol PROTOCOL = Constants.PROTOCOL.setClientHandler(Broker.class).build();
-    private static final Type DATA_BUNDLE_TYPE = new TypeToken<HashMap<String, byte[]>>(){}.getType();
+    private static final Type DATA_BUNDLE_TYPE = new TypeToken<ConcurrentHashMap<String, byte[]>>(){}.getType();
     private static final SQLibType<DataBundle> DATA_BUNDLE = new SQLibType<>(GsonTypes.ELEMENT, v -> GSON.toJsonTree(v.data()), v -> new DataBundle().data(GSON.fromJson(v, DATA_BUNDLE_TYPE)));
 
     @Getter

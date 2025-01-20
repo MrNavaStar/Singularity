@@ -1,12 +1,12 @@
-package me.mrnavastar.singularity.loader.impl.serialization;
+package me.mrnavastar.singularity.common.serialization;
 
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
-import me.mrnavastar.singularity.common.SingularitySerializer;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 public class PrimitiveSerializers {
 
@@ -40,6 +40,42 @@ public class PrimitiveSerializers {
         }
     }
 
+    public static class ByteSerializer implements SingularitySerializer.Serializer<Byte> {
+
+        @Override
+        public void serialize(Byte object, ByteArrayOutputStream out) {
+            out.write(object);
+        }
+
+        @SneakyThrows
+        @Override
+        public Byte deserialize(ByteArrayInputStream in) {
+            return in.readNBytes(1)[0];
+        }
+    }
+
+    // Serialize enum by name so data is preserved if enum is reordered
+    @RequiredArgsConstructor
+    public static class EnumSerializer implements SingularitySerializer.Serializer<Enum<?>> {
+
+        private final SingularitySerializer.Serializer<Class<?>> classSerializer;
+        private final SingularitySerializer.Serializer<String> stringSerializer;
+
+        @Override
+        public void serialize(Enum<?> object, ByteArrayOutputStream out) {
+            classSerializer.serialize(object.getClass(), out);
+            stringSerializer.serialize(object.name(), out);
+        }
+
+        @SneakyThrows
+        @Override
+        public Enum<?> deserialize(ByteArrayInputStream in) {
+            Class<Enum<?>> enumClass = (Class<Enum<?>>) classSerializer.deserialize(in);
+            String enumName = stringSerializer.deserialize(in);
+            return Arrays.stream(enumClass.getEnumConstants()).filter(en -> en.name().equals(enumName)).findFirst().orElse(null);
+        }
+    }
+
     @RequiredArgsConstructor
     public static class ClassSerializer implements SingularitySerializer.Serializer<Class<?>> {
 
@@ -60,6 +96,8 @@ public class PrimitiveSerializers {
     public static void registerAll(SingularitySerializer serializer) {
         serializer.register(StringSerializer.class);
         serializer.register(BooleanSerializer.class);
+        serializer.register(ByteSerializer.class);
+        serializer.register(EnumSerializer.class);
         serializer.register(ClassSerializer.class);
     }
 }

@@ -8,6 +8,8 @@ import me.mrnavastar.r.R;
 import me.mrnavastar.singularity.common.Constants;
 import me.mrnavastar.singularity.common.networking.DataBundle;
 import me.mrnavastar.singularity.loader.impl.Broker;
+import me.mrnavastar.singularity.loader.impl.serialization.GameProfileSerializer;
+import me.mrnavastar.singularity.loader.impl.serialization.StoredUserEntrySerializer;
 import me.mrnavastar.singularity.loader.util.Mappings;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.Services;
@@ -50,7 +52,7 @@ public class SynchronizedGameProfileRepository implements GameProfileRepository 
     }
 
     public static void install(MinecraftServer server) {
-        DataBundle.register(GameProfile.class);
+        DataBundle.register(GameProfileSerializer.class);
         String mapping = Mappings.of("services", "field_39440");
         Services services = R.of(server).get(mapping, Services.class);
         R.of(server).set(mapping, new Services(services.sessionService(), services.servicesKeySet(),

@@ -1,4 +1,4 @@
-package me.mrnavastar.singularity.common;
+package me.mrnavastar.singularity.common.serialization;
 
 import lombok.SneakyThrows;
 
@@ -19,6 +19,11 @@ public class SingularitySerializer {
     }
 
     private final ConcurrentHashMap<Class<?>, Serializer<?>> serializers = new ConcurrentHashMap<>();
+
+    public SingularitySerializer() {
+        PrimitiveSerializers.registerAll(this);
+        register(ExternalizableSerializer.class);
+    }
 
     @SneakyThrows
     public void register(Class<? extends Serializer<?>> serializer) {

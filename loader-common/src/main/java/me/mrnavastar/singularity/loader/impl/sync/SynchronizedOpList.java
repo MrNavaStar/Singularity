@@ -6,6 +6,7 @@ import me.mrnavastar.r.R;
 import me.mrnavastar.singularity.common.Constants;
 import me.mrnavastar.singularity.common.networking.DataBundle;
 import me.mrnavastar.singularity.loader.impl.Broker;
+import me.mrnavastar.singularity.loader.impl.serialization.StoredUserEntrySerializer;
 import me.mrnavastar.singularity.loader.util.Mappings;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.players.*;
@@ -66,7 +67,7 @@ public class SynchronizedOpList extends ServerOpList {
     }
 
     public static void install(MinecraftServer server) {
-        DataBundle.register(ServerOpListEntry.class);
+        DataBundle.register(StoredUserEntrySerializer.class);
         R.of(server.getPlayerList()).set(Mappings.of("ops", "field_14353"), new SynchronizedOpList());
         Broker.subTopic(Constants.OPERATOR, bundle -> {
 

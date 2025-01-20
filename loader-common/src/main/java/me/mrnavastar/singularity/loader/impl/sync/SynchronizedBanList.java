@@ -6,6 +6,7 @@ import me.mrnavastar.r.R;
 import me.mrnavastar.singularity.common.Constants;
 import me.mrnavastar.singularity.common.networking.DataBundle;
 import me.mrnavastar.singularity.loader.impl.Broker;
+import me.mrnavastar.singularity.loader.impl.serialization.StoredUserEntrySerializer;
 import me.mrnavastar.singularity.loader.util.Mappings;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
@@ -69,7 +70,7 @@ public class SynchronizedBanList extends UserBanList {
     }
 
     public static void install(MinecraftServer server) {
-        DataBundle.register(UserBanListEntry.class);
+        DataBundle.register(StoredUserEntrySerializer.class);
         R.of(server.getPlayerList()).set(Mappings.of("bans", "field_14344"), new SynchronizedBanList());
         // Disconnect player if banned from another server
         Broker.subTopic(Constants.BANNED_PLAYERS, bundle -> {

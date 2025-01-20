@@ -1,15 +1,12 @@
 package me.mrnavastar.singularity.common.networking;
 
-import lombok.EqualsAndHashCode;
+import lombok.*;
 
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
 import lombok.experimental.Accessors;
-import me.mrnavastar.protoweaver.core.util.ObjectSerializer;
+import me.mrnavastar.singularity.common.serialization.SingularitySerializer;
 
-import java.util.HashMap;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Accessors(fluent = true)
 @Setter
@@ -43,27 +40,23 @@ public class DataBundle {
         private boolean persist = true;
     }
 
-    private static final ObjectSerializer serializer = new ObjectSerializer();
+    private static final SingularitySerializer dataBundleSerializer = new SingularitySerializer();
 
-    private HashMap<String, byte[]> data = new HashMap<>();
-    private Meta meta = new Meta();
-
-    public static void register(Class<?> type) {
-        serializer.register(type);
+    public static void register(Class<? extends SingularitySerializer.Serializer<?>> serializer) {
+        dataBundleSerializer.register(serializer);
     }
 
-    public DataBundle put(String key, Object object) {
-        data.put(key, serializer.serialize(object));
+    private Meta meta = new Meta();
+    private transient final ConcurrentHashMap<String, Object> objects = new ConcurrentHashMap<>();
+    private ConcurrentHashMap<String, byte[]> data = new ConcurrentHashMap<>();
+
+    public DataBundle put(@NonNull String key, @NonNull Object object) {
+        objects.put(key, object);
+        data.put(key, dataBundleSerializer.serialize(object));
         return this;
     }
 
-    public <T> Optional<T> get(String key, Class<T> type) {
-        return Optional.ofNullable(this.data.get(key))
-                .flatMap(data -> Optional.ofNullable(serializer.deserialize(data))
-                        .flatMap(o -> Optional.of(type.cast(o))));
-    }
-
-    public boolean remove(String key) {
-        return data.remove(key) != null;
+    public <T> Optional<T> get(@NonNull String key, @NonNull Class<T> type) {
+        return Optional.ofNullable(type.cast(objects.computeIfAbsent(key, k -> dataBundleSerializer.deserialize(data.get(k), type))));
     }
 }

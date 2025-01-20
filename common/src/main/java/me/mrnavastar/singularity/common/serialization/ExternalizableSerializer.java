@@ -1,7 +1,6 @@
-package me.mrnavastar.singularity.loader.impl.serialization;
+package me.mrnavastar.singularity.common.serialization;
 
 import lombok.RequiredArgsConstructor;
-import me.mrnavastar.singularity.common.SingularitySerializer;
 
 import java.io.*;
 import java.lang.reflect.InvocationTargetException;
@@ -32,8 +31,4 @@ public class ExternalizableSerializer implements SingularitySerializer.Serialize
             throw new RuntimeException(e);
         }
     }
-
-    /*public static void register() {
-        DataBundle.register(Externalizable.class, new ExternalizableSerializer());
-    }*/
 }
