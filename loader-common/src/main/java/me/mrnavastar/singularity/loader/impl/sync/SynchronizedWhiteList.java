@@ -24,6 +24,7 @@ public class SynchronizedWhiteList extends UserWhiteList {
     }
 
     public static void setEnabled(boolean enabled) {
+        if (!Broker.getSettings().syncWhitelist) return;
         Broker.putTopic(Constants.WHITELIST, "enabled", new DataBundle()
                 .meta(new DataBundle.Meta().propagation(DataBundle.Propagation.ALL))
                 .put("enabled", enabled)

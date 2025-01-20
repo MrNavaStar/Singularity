@@ -97,7 +97,7 @@ public class PrimitiveSerializers {
         serializer.register(StringSerializer.class);
         serializer.register(BooleanSerializer.class);
         serializer.register(ByteSerializer.class);
-        serializer.register(EnumSerializer.class);
         serializer.register(ClassSerializer.class);
+        serializer.register(EnumSerializer.class);
     }
 }
