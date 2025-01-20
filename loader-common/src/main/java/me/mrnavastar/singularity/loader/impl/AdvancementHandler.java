@@ -1,6 +1,6 @@
 package me.mrnavastar.singularity.loader.impl;
 
-import com.google.gson.JsonParser;
+import com.google.gson.JsonElement;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.JsonOps;
 import me.mrnavastar.r.R;
@@ -12,14 +12,14 @@ import java.util.Set;
 
 public class AdvancementHandler {
 
-    public static String save(ServerPlayer player) {
+    public static JsonElement save(ServerPlayer player) {
         R advancements = R.of(player.getAdvancements());
         Codec codec = advancements.call("codec", Codec.class);
         Object data = advancements.call("asData", Object.class);
-        return codec.encodeStart(JsonOps.INSTANCE, data).getOrThrow().toString();
+        return (JsonElement) codec.encodeStart(JsonOps.INSTANCE, data).getOrThrow();
     }
 
-    public static void load(ServerPlayer player, String json) {
+    public static void load(ServerPlayer player, JsonElement json) {
         R advancements = R.of(player.getAdvancements());
         ServerAdvancementManager manager = player.getServer().getAdvancements();
         Codec codec = advancements.get("codec", Codec.class);
@@ -38,7 +38,7 @@ public class AdvancementHandler {
         System.out.println(json);
 
         // Mimic the official load function
-        Object data = codec.parse(JsonOps.INSTANCE, JsonParser.parseString(json)).getOrThrow();
+        Object data = codec.parse(JsonOps.INSTANCE, json).getOrThrow();
         advancements.call("applyFrom", void.class, manager, data);
         advancements.call("checkForAutomaticTriggers", void.class, manager);
         advancements.call("registerListeners", void.class, manager);

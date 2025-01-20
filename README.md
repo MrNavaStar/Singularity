@@ -61,17 +61,24 @@ lobby:
 ```
 Currently, these are all the available settings:
 
-| Setting               | Default Value | Info                         |
-|-----------------------|---------------|------------------------------|
-| singularity.ender     | true          | player ender chest           |
-| singularity.food      | true          | player hunger                |
-| singularity.gamemode  | true          | player gamemode              |
-| singularity.health    | true          | player health points         |
-| singularity.inventory | true          | items in player inventory    |
-| singularity.location  | false         | player position in the world |
-| singularity.score     | true          | player score                 |
-| singularity.spawn     | false         | player spawn point           |                      
-| singularity.xp        | true          | player experience level      |
+| Setting                | Default Value | Info                            |
+|------------------------|---------------|---------------------------------|
+| singularity.attributes | true          | player attributes               |
+| singularity.credits    | true          | if player has seen credits      |
+| singularity.effects    | true          | player status effects / on fire |
+| singularity.ender      | true          | player ender chest              |
+| singularity.food       | true          | player hunger                   |
+| singularity.gamemode   | true          | player gamemode                 |
+| singularity.health     | true          | player health points            |
+| singularity.inventory  | true          | items in player inventory       |
+| singularity.location   | **false**     | player position in the world    |
+| singularity.parrot     | **false**     | player shoulder parrots         |
+| singularity.score      | true          | player score                    |
+| singularity.scoreboard | true          | player scoreboard tags          |
+| singularity.spawn      | **false**     | player spawn point              |     
+| singularity.team       | true          | player team                     |
+| singularity.vehicle    | **false**     | entity the player is riding     |
+| singularity.xp         | true          | player experience level         |
 
 # Importing existing data
 The import system is currently pretty bare bones, but it is present. On one of your backend server, create a folder called `import_playerdata`

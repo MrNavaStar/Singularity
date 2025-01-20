@@ -1,5 +1,6 @@
 package me.mrnavastar.singularity.loader.impl.sync;
 
+import com.google.gson.JsonElement;
 import lombok.Setter;
 import lombok.SneakyThrows;
 import me.mrnavastar.r.R;
@@ -7,6 +8,7 @@ import me.mrnavastar.singularity.common.Constants;
 import me.mrnavastar.singularity.common.networking.DataBundle;
 import me.mrnavastar.singularity.common.networking.Topic;
 import me.mrnavastar.singularity.loader.api.Singularity;
+import me.mrnavastar.singularity.loader.impl.AdvancementHandler;
 import me.mrnavastar.singularity.loader.impl.Broker;
 import me.mrnavastar.singularity.loader.impl.serialization.GsonSerializer;
 import me.mrnavastar.singularity.loader.impl.serialization.NbtSerializer;
@@ -74,16 +76,13 @@ public class SynchronizedMinecraft {
         }));
 
         // Player Advancements
-        /*SyncEvents.SEND_DATA.register((player, data) -> {
-            if (!settings.syncPlayerAdvancements) return;
+        /*Singularity.PRE_PUSH_PLAYER_DATA.register((player, data) -> {
+            if (!Broker.getSettings().syncPlayerAdvancements) return;
             data.put(Constants.PLAYER_ADVANCEMENTS, AdvancementHandler.save(player));
         });
-        SyncEvents.RECEIVE_DATA.register((player, data) -> {
-            if (!settings.syncPlayerAdvancements) return;
-
-            System.out.println(data.get(Constants.PLAYER_ADVANCEMENTS, String.class));
-
-            AdvancementHandler.load(player, data.get(Constants.PLAYER_ADVANCEMENTS, String.class));
+        Singularity.POST_RECEIVE_PLAYER_DATA.register((player, data) -> {
+            if (!Broker.getSettings().syncPlayerAdvancements) return;
+            data.get(Constants.PLAYER_ADVANCEMENTS, JsonElement.class).ifPresent(advancements -> AdvancementHandler.load(player, advancements));
         });*/
 
         // Player Stats

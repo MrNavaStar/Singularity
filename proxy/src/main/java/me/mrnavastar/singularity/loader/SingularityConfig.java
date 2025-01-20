@@ -83,14 +83,21 @@ public class SingularityConfig {
     private static final ArrayList<String> registeredBlacklists = new ArrayList<>();
 
     static {
+        registerBlacklist("singularity.attributes");
+        registerBlacklist("singularity.credits");
+        registerBlacklist("singularity.effects");
         registerBlacklist("singularity.ender");
         registerBlacklist("singularity.food");
         registerBlacklist("singularity.gamemode");
         registerBlacklist("singularity.health");
         registerBlacklist("singularity.inventory");
         registerBlacklist("singularity.location");
+        registerBlacklist("singularity.parrot");
         registerBlacklist("singularity.score");
+        registerBlacklist("singularity.scoreboard");
         registerBlacklist("singularity.spawn");
+        registerBlacklist("singularity.team");
+        registerBlacklist("singularity.vehicle");
         registerBlacklist("singularity.xp");
     }
 
