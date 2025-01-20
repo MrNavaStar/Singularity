@@ -57,7 +57,14 @@ public class SingularitySerializer {
     }
 
     private Optional<Serializer<?>> getSerializer(Class<?> type) {
-        return Optional.ofNullable(serializers.computeIfAbsent(type, k -> getSerializer(type.getSuperclass()).orElse(null)));
+        Optional<Serializer<?>> maybeSerializer = Optional.ofNullable(serializers.computeIfAbsent(type, k -> getSerializer(type.getSuperclass()).orElse(null)));
+        if (maybeSerializer.isPresent()) return maybeSerializer;
+
+        for (Class<?> anInterface : type.getInterfaces()) {
+            Optional<Serializer<?>> serializer = getSerializer(anInterface);
+            if (serializer.isPresent()) return serializer;
+        }
+        return Optional.empty();
     }
 
     public <T> byte[] serialize(T object) {
