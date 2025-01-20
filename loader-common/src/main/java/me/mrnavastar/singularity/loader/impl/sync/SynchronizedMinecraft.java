@@ -14,8 +14,11 @@ import me.mrnavastar.singularity.loader.impl.serialization.GsonSerializer;
 import me.mrnavastar.singularity.loader.impl.serialization.NbtSerializer;
 import me.mrnavastar.singularity.loader.util.Mappings;
 import net.minecraft.nbt.*;
+import net.minecraft.network.protocol.game.ClientboundGameEventPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.level.GameType;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 
@@ -72,6 +75,7 @@ public class SynchronizedMinecraft {
                     Optional.ofNullable(current.get(key)).ifPresent(tag -> nbt.put(key, tag));
                 });
                 player.load(nbt);
+                refreshPlayerGameMode(player);
             });
         }));
 
@@ -113,6 +117,19 @@ public class SynchronizedMinecraft {
                 throw new UncheckedIOException(e);
             }
         });
+    }
+
+    private static void refreshPlayerGameMode(ServerPlayer player) {
+        GameType gameType = player.gameMode.getGameModeForPlayer();
+        player.connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.CHANGE_GAME_MODE, (float) gameType.getId()));
+        if (gameType == GameType.SPECTATOR) {
+            R.of(player).call("removeEntitiesOnShoulder");
+            player.stopRiding();
+            EnchantmentHelper.stopLocationBasedEffects(player);
+        } else player.setCamera(player);
+
+        player.onUpdateAbilities();
+        R.of(player).call("updateEffectVisibility");
     }
 
     protected static DataBundle createPlayerDataBundle(ServerPlayer player) {
