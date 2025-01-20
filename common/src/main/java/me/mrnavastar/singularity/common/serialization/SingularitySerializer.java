@@ -64,18 +64,17 @@ public class SingularitySerializer {
             Optional<Serializer<?>> serializer = getSerializer(anInterface);
             if (serializer.isPresent()) return serializer;
         }
-        return Optional.empty();
+        throw new RuntimeException("no serializer registered for type: " + type.getCanonicalName());
     }
 
     public <T> byte[] serialize(T object) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        getSerializer(object.getClass()).ifPresent(serializer -> ((Serializer<Object>) serializer).serialize(object, out));
+        ((Serializer<Object>) getSerializer(object.getClass()).get()).serialize(object, out);
         return out.toByteArray();
     }
 
     public <T> T deserialize(byte[] bytes, Class<? extends T> type) {
         ByteArrayInputStream in = new ByteArrayInputStream(bytes);
-        return type.cast(getSerializer(type).map(serializer -> serializer.deserialize(in))
-                .orElseThrow(() -> new RuntimeException("no serializer registered for type: " + type.getCanonicalName())));
+        return type.cast(getSerializer(type).get().deserialize(in));
     }
 }
