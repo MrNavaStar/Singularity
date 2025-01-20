@@ -31,7 +31,7 @@ Get the latest dev build from [here!](https://github.com/MrNavaStar/Singularity/
 - [ ] Network wide user cache (in progress)
 - [X] Mod API
 - [X] Config
-- [ ] External database support
+- [X] External database support (MySQL, MariaDB, Postgres)
 
 # Config
 To configure singularity, create a singularity.yaml file under `plugins/singularity` on your velocity instance. 
