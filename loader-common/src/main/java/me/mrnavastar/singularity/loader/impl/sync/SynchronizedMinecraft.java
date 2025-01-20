@@ -123,13 +123,13 @@ public class SynchronizedMinecraft {
         GameType gameType = player.gameMode.getGameModeForPlayer();
         player.connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.CHANGE_GAME_MODE, (float) gameType.getId()));
         if (gameType == GameType.SPECTATOR) {
-            R.of(player).call("removeEntitiesOnShoulder");
+            R.of(player).call(Mappings.of("removeEntitiesOnShoulder", "method_7262"));
             player.stopRiding();
             EnchantmentHelper.stopLocationBasedEffects(player);
         } else player.setCamera(player);
 
         player.onUpdateAbilities();
-        R.of(player).call("updateEffectVisibility");
+        R.of(player).call(Mappings.of("updateEffectVisibility", "method_6008"));
     }
 
     protected static DataBundle createPlayerDataBundle(ServerPlayer player) {
