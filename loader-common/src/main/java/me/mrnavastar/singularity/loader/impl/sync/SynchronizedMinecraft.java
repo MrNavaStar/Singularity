@@ -1,6 +1,5 @@
 package me.mrnavastar.singularity.loader.impl.sync;
 
-import com.google.gson.JsonElement;
 import lombok.Setter;
 import lombok.SneakyThrows;
 import me.mrnavastar.r.R;
@@ -8,7 +7,6 @@ import me.mrnavastar.singularity.common.Constants;
 import me.mrnavastar.singularity.common.networking.DataBundle;
 import me.mrnavastar.singularity.common.networking.Topic;
 import me.mrnavastar.singularity.loader.api.Singularity;
-import me.mrnavastar.singularity.loader.impl.AdvancementHandler;
 import me.mrnavastar.singularity.loader.impl.Broker;
 import me.mrnavastar.singularity.loader.impl.serialization.GsonSerializer;
 import me.mrnavastar.singularity.loader.impl.serialization.NbtSerializer;
@@ -43,9 +41,9 @@ public class SynchronizedMinecraft {
     public static void init(MinecraftServer s, Path importPath) {
         server = s;
         //SynchronizedGameProfileRepository.install(server);
-        //SynchronizedOpList.install(server);
-        //SynchronizedWhiteList.install(server);
-        //SynchronizedBanList.install(server);
+        SynchronizedOpList.install(server);
+        SynchronizedWhiteList.install(server);
+        SynchronizedBanList.install(server);
 
         DataBundle.register(NbtSerializer.class);
         DataBundle.register(GsonSerializer.class);
