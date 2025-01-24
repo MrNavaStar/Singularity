@@ -44,9 +44,7 @@ public class SynchronizedMinecraft {
         DataBundle.register(GsonSerializer.class);
 
         //SynchronizedGameProfileRepository.install(server);
-        SynchronizedOpList.install(server);
-        SynchronizedWhiteList.install(server);
-        SynchronizedBanList.install(server);
+        SynchronizedLists.install(server);
 
         importPlayerData(Path.of(importPath + "/import_playerdata"));
         reloadBlacklists();
@@ -137,8 +135,12 @@ public class SynchronizedMinecraft {
         return data;
     }
 
-    public static void syncPlayerData() {
-        server.getPlayerList().getPlayers().forEach(player -> Broker.putTopic(Constants.PLAYER_TOPIC, player.getUUID().toString(), createPlayerDataBundle(player)));
+    public static void syncPlayerData(DataBundle.Propagation propagation) {
+        server.getPlayerList().getPlayers().forEach(player -> {
+            DataBundle data = createPlayerDataBundle(player);
+            data.meta().propagation(propagation);
+            Broker.putTopic(Constants.PLAYER_TOPIC, player.getUUID().toString(), data);
+        });
     }
 
     @SneakyThrows

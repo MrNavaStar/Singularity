@@ -54,6 +54,23 @@ public class PrimitiveSerializers {
         }
     }
 
+    @RequiredArgsConstructor
+    public static class ClassSerializer implements SingularitySerializer.Serializer<Class<?>> {
+
+        private final SingularitySerializer.Serializer<String> stringSerializer;
+
+        @Override
+        public void serialize(Class<?> object, ByteArrayOutputStream out) {
+            stringSerializer.serialize(object.getName(), out);
+        }
+
+        @SneakyThrows
+        @Override
+        public Class<?> deserialize(ByteArrayInputStream in) {
+            return Class.forName(stringSerializer.deserialize(in));
+        }
+    }
+
     // Serialize enum by name so data is preserved if enum is reordered
     @RequiredArgsConstructor
     public static class EnumSerializer implements SingularitySerializer.Serializer<Enum<?>> {
@@ -73,23 +90,6 @@ public class PrimitiveSerializers {
             Class<Enum<?>> enumClass = (Class<Enum<?>>) classSerializer.deserialize(in);
             String enumName = stringSerializer.deserialize(in);
             return Arrays.stream(enumClass.getEnumConstants()).filter(en -> en.name().equals(enumName)).findFirst().orElse(null);
-        }
-    }
-
-    @RequiredArgsConstructor
-    public static class ClassSerializer implements SingularitySerializer.Serializer<Class<?>> {
-
-        private final SingularitySerializer.Serializer<String> stringSerializer;
-
-        @Override
-        public void serialize(Class<?> object, ByteArrayOutputStream out) {
-            stringSerializer.serialize(object.getName(), out);
-        }
-
-        @SneakyThrows
-        @Override
-        public Class<?> deserialize(ByteArrayInputStream in) {
-            return Class.forName(stringSerializer.deserialize(in));
         }
     }
 

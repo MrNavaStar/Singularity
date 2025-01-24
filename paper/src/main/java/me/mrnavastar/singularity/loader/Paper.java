@@ -5,7 +5,6 @@ import me.mrnavastar.protoweaver.api.ProtoWeaver;
 import me.mrnavastar.singularity.common.Constants;
 import me.mrnavastar.singularity.loader.impl.Broker;
 import me.mrnavastar.singularity.loader.impl.sync.SynchronizedMinecraft;
-import me.mrnavastar.singularity.loader.impl.sync.SynchronizedWhiteList;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import org.bukkit.craftbukkit.entity.CraftPlayer;

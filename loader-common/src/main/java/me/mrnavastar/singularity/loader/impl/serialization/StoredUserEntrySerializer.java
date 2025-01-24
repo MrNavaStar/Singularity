@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import me.mrnavastar.r.R;
 import me.mrnavastar.singularity.common.serialization.SingularitySerializer;
+import me.mrnavastar.singularity.loader.util.Mappings;
 import net.minecraft.server.players.StoredUserEntry;
 
 import java.io.ByteArrayInputStream;
@@ -21,10 +22,15 @@ public class StoredUserEntrySerializer implements SingularitySerializer.Serializ
     @Override
     public void serialize(StoredUserEntry<?> object, ByteArrayOutputStream out) {
         JsonObject json = new JsonObject();
-        R.of(object).call("serialize", json);
+        R.of(object).call(Mappings.of("serialize", "method_24896"), json);
 
         classSerializer.serialize(object.getClass(), out);
         jsonSerializer.serialize(json, out);
+    }
+
+    @SneakyThrows
+    public static <T> StoredUserEntry<T> deserialize(JsonObject json, Class<? extends StoredUserEntry<T>> clazz) {
+        return clazz.getDeclaredConstructor(JsonObject.class).newInstance(json);
     }
 
     @SneakyThrows

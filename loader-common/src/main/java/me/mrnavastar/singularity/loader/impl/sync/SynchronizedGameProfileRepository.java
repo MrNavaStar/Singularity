@@ -9,7 +9,6 @@ import me.mrnavastar.singularity.common.Constants;
 import me.mrnavastar.singularity.common.networking.DataBundle;
 import me.mrnavastar.singularity.loader.impl.Broker;
 import me.mrnavastar.singularity.loader.impl.serialization.GameProfileSerializer;
-import me.mrnavastar.singularity.loader.impl.serialization.StoredUserEntrySerializer;
 import me.mrnavastar.singularity.loader.util.Mappings;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.Services;
