@@ -28,7 +28,7 @@ Get the latest dev build from [here!](https://github.com/MrNavaStar/Singularity/
 - [x] Operator sync
 - [x] Whitelist sync
 - [x] Ban sync
-- [ ] Network wide user cache (in progress)
+- [x] Network wide user cache
 - [X] Mod API
 - [X] Single network wide config
 - [X] Optional external database support (MySQL, MariaDB, Postgres)

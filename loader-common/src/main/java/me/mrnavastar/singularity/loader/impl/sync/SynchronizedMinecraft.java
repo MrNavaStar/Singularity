@@ -7,6 +7,7 @@ import me.mrnavastar.singularity.common.networking.DataBundle;
 import me.mrnavastar.singularity.common.networking.Topic;
 import me.mrnavastar.singularity.loader.api.Singularity;
 import me.mrnavastar.singularity.loader.impl.Broker;
+import me.mrnavastar.singularity.loader.impl.serialization.GameProfileSerializer;
 import me.mrnavastar.singularity.loader.impl.serialization.GsonSerializer;
 import me.mrnavastar.singularity.loader.impl.serialization.NbtSerializer;
 import net.minecraft.nbt.*;
@@ -38,8 +39,9 @@ public class SynchronizedMinecraft {
         server = s;
         DataBundle.register(NbtSerializer.class);
         DataBundle.register(GsonSerializer.class);
+        DataBundle.register(GameProfileSerializer.class);
 
-        //SynchronizedGameProfileRepository.install(server);
+        SynchronizedGameProfileRepository.install(server);
         SynchronizedLists.install(server);
 
         importPlayerData(Path.of(importPath + "/import_playerdata"));

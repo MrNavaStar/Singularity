@@ -21,26 +21,20 @@ public class SynchronizedGameProfileRepository implements GameProfileRepository 
 
     private final GameProfileRepository parent;
 
-    public static void saveProfile(GameProfile profile) {
-        Broker.putGlobalTopic(Constants.USER_CACHE, profile.getName(), new DataBundle().put("profile", profile));
-    }
-
     @Override
     public void findProfilesByNames(String[] names, ProfileLookupCallback callback) {
         ArrayList<String> notFound = new ArrayList<>();
 
-        Arrays.stream(names).forEach(name -> {
-            Broker.getGlobalTopic(Constants.USER_CACHE, name).whenComplete((bundle, t) -> {
-                bundle.flatMap(data -> data.get("profile", GameProfile.class))
-                        .ifPresentOrElse(callback::onProfileLookupSucceeded, () -> notFound.add(name));
-            });
-        });
+        Arrays.stream(names).forEach(name ->
+                Broker.getGlobalTopic(Constants.USER_CACHE, name).whenComplete((bundle, t) ->
+                        bundle.flatMap(data -> data.get("profile", GameProfile.class))
+                .ifPresentOrElse(callback::onProfileLookupSucceeded, () -> notFound.add(name))));
 
         parent.findProfilesByNames(notFound.toArray(new String[0]), new ProfileLookupCallback() {
             @Override
             public void onProfileLookupSucceeded(GameProfile profile) {
                 callback.onProfileLookupSucceeded(profile);
-                saveProfile(profile);
+                Broker.putGlobalTopic(Constants.USER_CACHE, profile.getName(), new DataBundle().put("profile", profile));
             }
 
             @Override
@@ -51,7 +45,6 @@ public class SynchronizedGameProfileRepository implements GameProfileRepository 
     }
 
     public static void install(MinecraftServer server) {
-        DataBundle.register(GameProfileSerializer.class);
         String mapping = Mappings.of("services", "field_39440");
         Services services = R.of(server).get(mapping, Services.class);
         R.of(server).set(mapping, new Services(services.sessionService(), services.servicesKeySet(),
