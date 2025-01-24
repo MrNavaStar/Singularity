@@ -40,13 +40,13 @@ public class SynchronizedMinecraft {
 
     public static void init(MinecraftServer s, Path importPath) {
         server = s;
+        DataBundle.register(NbtSerializer.class);
+        DataBundle.register(GsonSerializer.class);
+
         //SynchronizedGameProfileRepository.install(server);
         SynchronizedOpList.install(server);
         SynchronizedWhiteList.install(server);
         SynchronizedBanList.install(server);
-
-        DataBundle.register(NbtSerializer.class);
-        DataBundle.register(GsonSerializer.class);
 
         importPlayerData(Path.of(importPath + "/import_playerdata"));
         reloadBlacklists();

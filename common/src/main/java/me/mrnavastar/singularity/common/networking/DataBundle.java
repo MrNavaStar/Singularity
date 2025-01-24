@@ -5,6 +5,7 @@ import lombok.*;
 import lombok.experimental.Accessors;
 import me.mrnavastar.singularity.common.serialization.SingularitySerializer;
 
+import java.util.HashMap;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -48,7 +49,7 @@ public class DataBundle {
 
     private Meta meta = new Meta();
     private transient final ConcurrentHashMap<String, Object> objects = new ConcurrentHashMap<>();
-    private ConcurrentHashMap<String, byte[]> data = new ConcurrentHashMap<>();
+    private HashMap<String, byte[]> data = new HashMap<>();
 
     public DataBundle put(@NonNull String key, @NonNull Object object) {
         objects.put(key, object);
