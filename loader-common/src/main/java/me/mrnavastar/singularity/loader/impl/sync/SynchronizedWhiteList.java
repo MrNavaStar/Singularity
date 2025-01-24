@@ -37,7 +37,7 @@ public class SynchronizedWhiteList extends UserWhiteList {
             super.add(entry);
             return;
         }
-        GameProfile profile = R.of(entry).get("user", GameProfile.class);
+        GameProfile profile = R.of(entry).call(Mappings.of("getUser", "method_14626"), GameProfile.class);
         Broker.putTopic(Constants.WHITELIST, profile.getId().toString(), new DataBundle());
     }
 

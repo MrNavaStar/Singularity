@@ -26,7 +26,7 @@ public class SynchronizedOpList extends ServerOpList {
             super.add(entry);
             return;
         }
-        GameProfile profile = R.of(entry).get("user", GameProfile.class);
+        GameProfile profile = R.of(entry).call(Mappings.of("getUser", "method_14626"), GameProfile.class);
         Broker.putTopic(Constants.OPERATOR, profile.getId().toString(), new DataBundle()
                 .meta(new DataBundle.Meta().propagation(DataBundle.Propagation.ALL))
                 .put("entry", entry));
