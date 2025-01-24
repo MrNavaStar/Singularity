@@ -15,8 +15,13 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.BooleanSupplier;
 
+// TODO: improve performance by keeping an in memory copy of the last value for any players currently on the server
 public class SynchronizedStoredUserList<T> extends StoredUserList<T, StoredUserEntry<T>> {
 
     private final String topic;
@@ -35,16 +40,26 @@ public class SynchronizedStoredUserList<T> extends StoredUserList<T, StoredUserE
         return StoredUserEntrySerializer.deserialize(json, entryType);
     }
 
+    private Optional<String> getKey(Object object) {
+        if (object instanceof String key) return Optional.of(key);
+        if (object instanceof GameProfile key) return Optional.of(key.getId().toString());
+        return Optional.empty();
+    }
+
+    public Optional<String> getKey(StoredUserEntry<T> entry) {
+       return getKey(R.of(entry).get(Mappings.of("user", "field_14368"), Object.class));
+    }
+
     @Override
     public void add(StoredUserEntry<T> entry) {
         if (!enabled.getAsBoolean()) {
             super.add(entry);
             return;
         }
-        GameProfile profile = R.of(entry).call(Mappings.of("getUser", "method_14626"), GameProfile.class);
-        Broker.putTopic(topic, profile.getId().toString(), new DataBundle()
+        getKey(entry).ifPresent(key ->
+                Broker.putTopic(topic, key, new DataBundle()
                 .meta(new DataBundle.Meta().propagation(DataBundle.Propagation.ALL))
-                .put("entry", entry));
+                .put("entry", entry)));
     }
 
     @Override
@@ -53,17 +68,21 @@ public class SynchronizedStoredUserList<T> extends StoredUserList<T, StoredUserE
             super.remove(object);
             return;
         }
-        if (object instanceof GameProfile profile) Broker.removeTopic(topic, profile.getId().toString());
+        getKey(object).ifPresent(key ->  Broker.removeTopic(topic, key));
     }
 
     @SneakyThrows
     @Override
     public @Nullable StoredUserEntry<T> get(T object) {
         if (!enabled.getAsBoolean()) return super.get(object);
-        if (object instanceof GameProfile profile) return Broker.getTopic(topic, profile.getId().toString()).get()
-                .flatMap(bundle -> bundle.get("entry", entryType))
-                .orElse(null);
-        return super.get(object);
+        return getKey(object).flatMap(key -> {
+                    try {
+                        return Broker.getTopic(topic, key).get(5, TimeUnit.SECONDS);
+                    } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                        return Optional.empty();
+                    }
+                })
+                .flatMap(bundle -> bundle.get("entry", entryType)).orElse(null);
     }
 
     @Override

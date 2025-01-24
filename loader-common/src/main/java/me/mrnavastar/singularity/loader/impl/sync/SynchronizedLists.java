@@ -9,6 +9,7 @@ import me.mrnavastar.singularity.loader.impl.Broker;
 import me.mrnavastar.singularity.loader.util.Mappings;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.players.*;
 import org.jetbrains.annotations.Nullable;
 
@@ -20,8 +21,8 @@ public class SynchronizedLists {
 
     private static final SynchronizedStoredUserList<GameProfile> ops = new SynchronizedStoredUserList<>(Constants.OPERATOR, ServerOpListEntry.class, () -> Broker.getSettings().syncOps, PlayerList.OPLIST_FILE);
     private static final SynchronizedStoredUserList<GameProfile> bans = new SynchronizedStoredUserList<>(Constants.BANNED_PLAYERS, UserBanListEntry.class, () -> Broker.getSettings().syncBans, PlayerList.USERBANLIST_FILE);
-    private static final SynchronizedStoredUserList<GameProfile> whitelist = new SynchronizedStoredUserList<>(Constants.WHITELIST, UserWhiteListEntry.class, () -> Broker.getSettings().syncWhitelist, PlayerList.WHITELIST_FILE);
     private static final SynchronizedStoredUserList<String> ipbans = new SynchronizedStoredUserList<>(Constants.BANNED_IPS, IpBanListEntry.class, () -> Broker.getSettings().syncBans, PlayerList.IPBANLIST_FILE);
+    private static final SynchronizedStoredUserList<GameProfile> whitelist = new SynchronizedStoredUserList<>(Constants.WHITELIST, UserWhiteListEntry.class, () -> Broker.getSettings().syncWhitelist, PlayerList.WHITELIST_FILE);
 
     public static class SynchronizedOpList extends ServerOpList {
 
@@ -99,44 +100,6 @@ public class SynchronizedLists {
         }
     }
 
-    public static class SynchronizedWhiteList extends UserWhiteList {
-
-        public SynchronizedWhiteList() {
-            super(whitelist.getFile());
-        }
-
-        @Override
-        public void add(UserWhiteListEntry entry) {
-            whitelist.add(entry);
-        }
-
-        @Override
-        public void remove(GameProfile profile) {
-            whitelist.remove(profile);
-        }
-
-        @Override
-        @SneakyThrows
-        public @Nullable UserWhiteListEntry get(GameProfile profile) {
-            return (UserWhiteListEntry) whitelist.get(profile);
-        }
-
-        @Override
-        protected boolean contains(GameProfile profile) {
-            return whitelist.contains(profile);
-        }
-
-        @Override
-        public void save() throws IOException {
-            whitelist.save();
-        }
-
-        @Override
-        public void load() throws IOException {
-            whitelist.load();
-        }
-    }
-
     public static class SynchronizedIpBanList extends IpBanList {
 
         public SynchronizedIpBanList() {
@@ -175,6 +138,44 @@ public class SynchronizedLists {
         }
     }
 
+    public static class SynchronizedWhiteList extends UserWhiteList {
+
+        public SynchronizedWhiteList() {
+            super(whitelist.getFile());
+        }
+
+        @Override
+        public void add(UserWhiteListEntry entry) {
+            whitelist.add(entry);
+        }
+
+        @Override
+        public void remove(GameProfile profile) {
+            whitelist.remove(profile);
+        }
+
+        @Override
+        @SneakyThrows
+        public @Nullable UserWhiteListEntry get(GameProfile profile) {
+            return (UserWhiteListEntry) whitelist.get(profile);
+        }
+
+        @Override
+        protected boolean contains(GameProfile profile) {
+            return whitelist.contains(profile);
+        }
+
+        @Override
+        public void save() throws IOException {
+            whitelist.save();
+        }
+
+        @Override
+        public void load() throws IOException {
+            whitelist.load();
+        }
+    }
+
     public static void setWhitelist(boolean enabled) {
         if (!Broker.getSettings().syncWhitelist) return;
         Broker.putTopic(Constants.WHITELIST, "enabled", new DataBundle()
@@ -188,6 +189,7 @@ public class SynchronizedLists {
         // Overwrite vanilla list handlers
         R.of(server.getPlayerList()).set(Mappings.of("ops", "field_14353"), new SynchronizedOpList());
         R.of(server.getPlayerList()).set(Mappings.of("bans", "field_14344"), new SynchronizedBanList());
+        R.of(server.getPlayerList()).set(Mappings.of("ipBans", "field_14345"), new SynchronizedIpBanList());
         R.of(server.getPlayerList()).set(Mappings.of("whitelist", "field_14361"), new SynchronizedWhiteList());
 
         // Op/DeOp player if their status is changed on another server
@@ -211,6 +213,21 @@ public class SynchronizedLists {
             Optional.ofNullable(server.getPlayerList().getPlayer(UUID.fromString(bundle.meta().id())))
                     .ifPresent(player -> bundle.get("entry", UserBanListEntry.class)
                             .ifPresent(entry -> player.connection.disconnect(Component.literal(entry.getReason()))));
+        });
+
+        // Disconnect player if their ip is banned from another server
+        Broker.subTopic(Constants.BANNED_IPS, bundle -> {
+            if (!bundle.meta().action().equals(DataBundle.Action.PUT)) return;
+
+            bundle.get("entry", IpBanListEntry.class).ifPresent(entry -> {
+                for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+                    String playerIp = R.of(ipbans).call(Mappings.of("getIpFromAddress", "method_14526"), String.class, player.connection.getRemoteAddress());
+                    if (ipbans.getKey(entry).equals(Optional.of(playerIp))) {
+                        player.connection.disconnect(Component.literal(entry.getReason()));
+                        return;
+                    }
+                }
+            });
         });
 
         // Disconnect player if un-whitelisted from another server

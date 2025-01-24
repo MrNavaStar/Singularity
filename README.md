@@ -23,15 +23,15 @@ Get the latest dev build from [here!](https://github.com/MrNavaStar/Singularity/
 
 # Features
 - [x] Player data sync
-- [x] Player statistics sync
+- [ ] Player statistics sync (in progress)
 - [ ] Player advancements sync (in progress)
-- [ ] Operator level sync (in progress)
-- [ ] Whitelist sync (in progress)
-- [ ] Ban sync (in progress)
+- [x] Operator sync
+- [x] Whitelist sync
+- [x] Ban sync
 - [ ] Network wide user cache (in progress)
 - [X] Mod API
-- [X] Config
-- [X] External database support (MySQL, MariaDB, Postgres)
+- [X] Single network wide config
+- [X] Optional external database support (MySQL, MariaDB, Postgres)
 
 # Config
 To configure singularity, create a singularity.yaml file under `plugins/singularity` on your velocity instance. 
