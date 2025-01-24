@@ -18,10 +18,10 @@ import java.util.UUID;
 
 public class SynchronizedLists {
 
-    private static final SynchronizedStoredUserList<GameProfile> ops = new SynchronizedStoredUserList<>(Constants.OPERATOR, ServerOpListEntry.class, Broker.getSettings().syncOps, PlayerList.OPLIST_FILE);
-    private static final SynchronizedStoredUserList<GameProfile> bans = new SynchronizedStoredUserList<>(Constants.BANNED_PLAYERS, UserBanListEntry.class, Broker.getSettings().syncBans, PlayerList.USERBANLIST_FILE);
-    private static final SynchronizedStoredUserList<GameProfile> whitelist = new SynchronizedStoredUserList<>(Constants.WHITELIST, UserWhiteListEntry.class, Broker.getSettings().syncWhitelist, PlayerList.WHITELIST_FILE);
-    private static final SynchronizedStoredUserList<String> ipbans = new SynchronizedStoredUserList<>(Constants.BANNED_IPS, IpBanListEntry.class, Broker.getSettings().syncBans, PlayerList.IPBANLIST_FILE);
+    private static final SynchronizedStoredUserList<GameProfile> ops = new SynchronizedStoredUserList<>(Constants.OPERATOR, ServerOpListEntry.class, () -> Broker.getSettings().syncOps, PlayerList.OPLIST_FILE);
+    private static final SynchronizedStoredUserList<GameProfile> bans = new SynchronizedStoredUserList<>(Constants.BANNED_PLAYERS, UserBanListEntry.class, () -> Broker.getSettings().syncBans, PlayerList.USERBANLIST_FILE);
+    private static final SynchronizedStoredUserList<GameProfile> whitelist = new SynchronizedStoredUserList<>(Constants.WHITELIST, UserWhiteListEntry.class, () -> Broker.getSettings().syncWhitelist, PlayerList.WHITELIST_FILE);
+    private static final SynchronizedStoredUserList<String> ipbans = new SynchronizedStoredUserList<>(Constants.BANNED_IPS, IpBanListEntry.class, () -> Broker.getSettings().syncBans, PlayerList.IPBANLIST_FILE);
 
     public static class SynchronizedOpList extends ServerOpList {
 

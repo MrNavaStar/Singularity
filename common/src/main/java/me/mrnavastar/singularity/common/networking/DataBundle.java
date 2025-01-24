@@ -58,6 +58,8 @@ public class DataBundle {
     }
 
     public <T> Optional<T> get(@NonNull String key, @NonNull Class<T> type) {
-        return Optional.ofNullable(type.cast(objects.computeIfAbsent(key, k -> dataBundleSerializer.deserialize(data.get(k), type))));
+        return Optional.ofNullable(type.cast(objects.computeIfAbsent(key, k ->
+                Optional.ofNullable(data.get(k)).map(buf -> dataBundleSerializer.deserialize(buf, type))
+                        .orElse(null))));
     }
 }

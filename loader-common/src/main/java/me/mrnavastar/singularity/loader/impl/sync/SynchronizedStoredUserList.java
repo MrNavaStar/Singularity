@@ -15,14 +15,15 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.function.BooleanSupplier;
 
 public class SynchronizedStoredUserList<T> extends StoredUserList<T, StoredUserEntry<T>> {
 
     private final String topic;
     private final Class<? extends StoredUserEntry<T>> entryType;
-    private final boolean enabled;
+    private final BooleanSupplier enabled;
 
-    public SynchronizedStoredUserList(String topic, Class<? extends StoredUserEntry<T>> entryType, boolean enabled, File file) {
+    public SynchronizedStoredUserList(String topic, Class<? extends StoredUserEntry<T>> entryType, BooleanSupplier enabled, File file) {
         super(file);
         this.topic = topic;
         this.entryType = entryType;
@@ -36,7 +37,7 @@ public class SynchronizedStoredUserList<T> extends StoredUserList<T, StoredUserE
 
     @Override
     public void add(StoredUserEntry<T> entry) {
-        if (!enabled) {
+        if (!enabled.getAsBoolean()) {
             super.add(entry);
             return;
         }
@@ -48,7 +49,7 @@ public class SynchronizedStoredUserList<T> extends StoredUserList<T, StoredUserE
 
     @Override
     public void remove(T object) {
-        if (!enabled) {
+        if (!enabled.getAsBoolean()) {
             super.remove(object);
             return;
         }
@@ -58,7 +59,7 @@ public class SynchronizedStoredUserList<T> extends StoredUserList<T, StoredUserE
     @SneakyThrows
     @Override
     public @Nullable StoredUserEntry<T> get(T object) {
-        if (!enabled) return super.get(object);
+        if (!enabled.getAsBoolean()) return super.get(object);
         if (object instanceof GameProfile profile) return Broker.getTopic(topic, profile.getId().toString()).get()
                 .flatMap(bundle -> bundle.get("entry", entryType))
                 .orElse(null);
@@ -67,7 +68,7 @@ public class SynchronizedStoredUserList<T> extends StoredUserList<T, StoredUserE
 
     @Override
     protected boolean contains(T object) {
-        if (!enabled) super.contains(object);
+        if (!enabled.getAsBoolean()) super.contains(object);
         return get(object) != null;
     }
 
@@ -78,12 +79,12 @@ public class SynchronizedStoredUserList<T> extends StoredUserList<T, StoredUserE
 
     @Override
     public void save() throws IOException {
-        if (!enabled) super.save();
+        if (!enabled.getAsBoolean()) super.save();
     }
 
     @Override
     public void load() throws IOException {
-        if (!enabled) super.load();
+        if (!enabled.getAsBoolean()) super.load();
     }
 
     public static void install() {
