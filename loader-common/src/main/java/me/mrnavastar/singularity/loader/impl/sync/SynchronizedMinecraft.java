@@ -2,7 +2,6 @@ package me.mrnavastar.singularity.loader.impl.sync;
 
 import lombok.Setter;
 import lombok.SneakyThrows;
-import me.mrnavastar.r.R;
 import me.mrnavastar.singularity.common.Constants;
 import me.mrnavastar.singularity.common.networking.DataBundle;
 import me.mrnavastar.singularity.common.networking.Topic;
@@ -10,12 +9,9 @@ import me.mrnavastar.singularity.loader.api.Singularity;
 import me.mrnavastar.singularity.loader.impl.Broker;
 import me.mrnavastar.singularity.loader.impl.serialization.GsonSerializer;
 import me.mrnavastar.singularity.loader.impl.serialization.NbtSerializer;
-import me.mrnavastar.singularity.loader.util.Mappings;
 import net.minecraft.nbt.*;
-import net.minecraft.network.protocol.game.ClientboundGameEventPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.level.GameType;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -53,14 +49,13 @@ public class SynchronizedMinecraft {
         Broker.subTopic(Constants.PLAYER_TOPIC, Topic.Behaviour.PLAYER, data -> Optional.ofNullable(server.getPlayerList().getPlayer(UUID.fromString(data.meta().id())))
                 .ifPresentOrElse(player -> processData(player, data), () -> incoming.put(UUID.fromString(data.meta().id()), data)));
 
-        // Player Data
+        // Player data sync
         Singularity.PRE_PUSH_PLAYER_DATA.register(((player, data) -> {
             if (!Broker.getSettings().syncPlayerData) return;
             CompoundTag nbt = new CompoundTag();
             player.saveWithoutId(nbt);
             data.put(Constants.PLAYER_TOPIC + ":nbt", nbt);
         }));
-
         Singularity.POST_RECEIVE_PLAYER_DATA.register(((player, data) -> {
             if (!Broker.getSettings().syncPlayerData) return;
             data.get(Constants.PLAYER_TOPIC + ":nbt", CompoundTag.class).ifPresent(nbt -> {
@@ -71,8 +66,17 @@ public class SynchronizedMinecraft {
                     Optional.ofNullable(current.get(key)).ifPresent(tag -> nbt.put(key, tag));
                 });
                 player.load(nbt);
-                refreshPlayerGameMode(player);
             });
+        }));
+
+        // Player game mode sync
+        Singularity.PRE_PUSH_PLAYER_DATA.register(((player, data) -> {
+            if (!Broker.getSettings().syncPlayerGameMode) return;
+            data.put(Constants.PLAYER_TOPIC + ":gametype", player.gameMode.getGameModeForPlayer());
+        }));
+        Singularity.POST_RECEIVE_PLAYER_DATA.register(((player, data) -> {
+            if (!Broker.getSettings().syncPlayerGameMode) return;
+            data.get(Constants.PLAYER_TOPIC + ":gametype", GameType.class).ifPresent(player::setGameMode);
         }));
 
         // Player Advancements
@@ -86,14 +90,14 @@ public class SynchronizedMinecraft {
         });*/
 
         // Player Stats
-        Singularity.PRE_PUSH_PLAYER_DATA.register((player, data) -> {
+        /*Singularity.PRE_PUSH_PLAYER_DATA.register((player, data) -> {
             if (!Broker.getSettings().syncPlayerStats) return;
-            data.put(Constants.PLAYER_STATS, R.of(player.getStats()).call(Mappings.of("toJson", "method_14911"), String.class));
+            data.put(Constants.PLAYER_TOPIC + ":stats", R.of(player.getStats()).call(Mappings.of("toJson", "method_14911"), String.class));
         });
         Singularity.POST_RECEIVE_PLAYER_DATA.register((player, data) -> {
             if (!Broker.getSettings().syncPlayerStats) return;
-            data.get(Constants.PLAYER_STATS, String.class).ifPresent(stats -> player.getStats().parseLocal(server.getFixerUpper(), stats));
-        });
+            data.get(Constants.PLAYER_TOPIC + ":stats", String.class).ifPresent(stats -> player.getStats().parseLocal(server.getFixerUpper(), stats));
+        });*/
     }
 
     public static void reloadBlacklists() {
@@ -113,19 +117,6 @@ public class SynchronizedMinecraft {
                 throw new UncheckedIOException(e);
             }
         });
-    }
-
-    private static void refreshPlayerGameMode(ServerPlayer player) {
-        GameType gameType = player.gameMode.getGameModeForPlayer();
-        player.connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.CHANGE_GAME_MODE, (float) gameType.getId()));
-        if (gameType == GameType.SPECTATOR) {
-            R.of(player).call(Mappings.of("removeEntitiesOnShoulder", "method_7262"));
-            player.stopRiding();
-            EnchantmentHelper.stopLocationBasedEffects(player);
-        } else player.setCamera(player);
-
-        player.onUpdateAbilities();
-        R.of(player).call(Mappings.of("updateEffectVisibility", "method_6008"));
     }
 
     protected static DataBundle createPlayerDataBundle(ServerPlayer player) {

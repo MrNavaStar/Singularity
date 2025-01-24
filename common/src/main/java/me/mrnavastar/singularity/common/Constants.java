@@ -27,8 +27,6 @@ public class Constants {
 
     public static final String PLAYER_TOPIC = SINGULARITY_ID + ":player";
 
-    public static final String PLAYER_ADVANCEMENTS = SINGULARITY_ID + ":adv";
-    public static final String PLAYER_STATS = SINGULARITY_ID + ":stats";
     public static final String USER_CACHE = SINGULARITY_ID + ":users";
     public static final String WHITELIST = SINGULARITY_ID + ":white";
     public static final String OPERATOR = SINGULARITY_ID + ":op";

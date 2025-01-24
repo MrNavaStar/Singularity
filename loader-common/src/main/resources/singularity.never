@@ -1,5 +1,10 @@
 # https://minecraft.wiki/w/Player.dat_format
 
+# Game mode is handled with a custom handler as syncing these directly causes client/server de-sync issues
+playerGameType
+previousPlayerGameType
+abilities
+
 Passengers
 TicksFrozen
 UUID

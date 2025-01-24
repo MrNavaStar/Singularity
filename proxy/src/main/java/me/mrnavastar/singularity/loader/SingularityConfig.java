@@ -88,7 +88,6 @@ public class SingularityConfig {
         registerBlacklist("singularity.effects");
         registerBlacklist("singularity.ender");
         registerBlacklist("singularity.food");
-        registerBlacklist("singularity.gamemode");
         registerBlacklist("singularity.health");
         registerBlacklist("singularity.inventory");
         registerBlacklist("singularity.location");
@@ -163,6 +162,7 @@ public class SingularityConfig {
                         });
 
                         if (s.get("singularity.player") instanceof Boolean enabled) group.settings.syncPlayerData = enabled;
+                        if (s.get("singularity.gamemode") instanceof Boolean enabled) group.settings.syncPlayerGameMode = enabled;
                         if (s.get("singularity.stats") instanceof Boolean enabled) group.settings.syncPlayerStats = enabled;
                         if (s.get("singularity.advancements") instanceof Boolean enabled) group.settings.syncPlayerAdvancements = enabled;
                         if (s.get("singularity.ops") instanceof Boolean enabled) group.settings.syncOps = enabled;

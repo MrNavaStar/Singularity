@@ -7,6 +7,7 @@ import java.util.HashSet;
 @ToString
 public class Settings {
     public boolean syncPlayerData = false;
+    public boolean syncPlayerGameMode = false;
     public boolean syncPlayerStats = false;
     public boolean syncPlayerAdvancements = false;
     public boolean syncOps = false;
@@ -17,6 +18,7 @@ public class Settings {
 
     public Settings setDefault() {
         syncPlayerData = true;
+        syncPlayerGameMode = true;
         syncPlayerStats = true;
         syncPlayerAdvancements = true;
         syncOps = true;
