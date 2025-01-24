@@ -129,7 +129,7 @@ public class Broker implements ProtoConnectionHandler {
             case DataBundle.Meta meta -> Optional.ofNullable(pendingRequests.remove(meta)).ifPresent(request -> request.complete(Optional.empty()));
 
             case DataBundle data -> {
-                if (data.meta().action().equals(DataBundle.Action.NONE))
+                if (data.meta().action().equals(DataBundle.Action.GET))
                     Optional.ofNullable(pendingRequests.remove(data.meta())).ifPresent(request -> request.complete(Optional.of(data)));
 
                 else subscriptions.getOrDefault(data.meta().topic(), new HashSet<>()).forEach(consumer -> consumer.accept(data));
