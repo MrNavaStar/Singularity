@@ -3,7 +3,9 @@ package me.mrnavastar.singularity.loader;
 import com.destroystokyo.paper.event.server.WhitelistToggleEvent;
 import me.mrnavastar.protoweaver.api.ProtoWeaver;
 import me.mrnavastar.singularity.common.Constants;
+import me.mrnavastar.singularity.common.networking.DataBundle;
 import me.mrnavastar.singularity.loader.impl.Broker;
+import me.mrnavastar.singularity.loader.impl.sync.SynchronizedLists;
 import me.mrnavastar.singularity.loader.impl.sync.SynchronizedMinecraft;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -31,12 +33,12 @@ public class Paper extends JavaPlugin {
 
         @EventHandler
         public void onSave(WorldSaveEvent event) {
-            syncPlayerData();
+            syncPlayerData(DataBundle.Propagation.NONE);
         }
 
         @EventHandler
         public void onToggle(WhitelistToggleEvent event) {
-            SynchronizedWhiteList.setEnabled(event.isEnabled());
+            SynchronizedLists.setWhitelist(event.isEnabled());
         }
 
         @EventHandler
