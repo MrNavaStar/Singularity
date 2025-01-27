@@ -19,10 +19,10 @@ import java.util.UUID;
 
 public class SynchronizedLists {
 
-    private static final SynchronizedStoredUserList<GameProfile> ops = new SynchronizedStoredUserList<>(Constants.OPERATOR, ServerOpListEntry.class, () -> Broker.getSettings().syncOps, PlayerList.OPLIST_FILE);
-    private static final SynchronizedStoredUserList<GameProfile> bans = new SynchronizedStoredUserList<>(Constants.BANNED_PLAYERS, UserBanListEntry.class, () -> Broker.getSettings().syncBans, PlayerList.USERBANLIST_FILE);
-    private static final SynchronizedStoredUserList<String> ipbans = new SynchronizedStoredUserList<>(Constants.BANNED_IPS, IpBanListEntry.class, () -> Broker.getSettings().syncBans, PlayerList.IPBANLIST_FILE);
-    private static final SynchronizedStoredUserList<GameProfile> whitelist = new SynchronizedStoredUserList<>(Constants.WHITELIST, UserWhiteListEntry.class, () -> Broker.getSettings().syncWhitelist, PlayerList.WHITELIST_FILE);
+    private static final SynchronizedStoredUserList<GameProfile> ops = new SynchronizedStoredUserList<>(Constants.OPERATOR, ServerOpListEntry.class, () -> Broker.getSettings().syncOps, true, PlayerList.OPLIST_FILE);
+    private static final SynchronizedStoredUserList<GameProfile> bans = new SynchronizedStoredUserList<>(Constants.BANNED_PLAYERS, UserBanListEntry.class, () -> Broker.getSettings().syncBans, true, PlayerList.USERBANLIST_FILE);
+    private static final SynchronizedStoredUserList<String> ipbans = new SynchronizedStoredUserList<>(Constants.BANNED_IPS, IpBanListEntry.class, () -> Broker.getSettings().syncBans, false, PlayerList.IPBANLIST_FILE);
+    private static final SynchronizedStoredUserList<GameProfile> whitelist = new SynchronizedStoredUserList<>(Constants.WHITELIST, UserWhiteListEntry.class, () -> Broker.getSettings().syncWhitelist, true, PlayerList.WHITELIST_FILE);
 
     public static class SynchronizedOpList extends ServerOpList {
 
@@ -44,11 +44,6 @@ public class SynchronizedLists {
         @SneakyThrows
         public @Nullable ServerOpListEntry get(GameProfile profile) {
             return (ServerOpListEntry) ops.get(profile);
-        }
-
-        @Override
-        protected boolean contains(GameProfile profile) {
-            return ops.contains(profile);
         }
 
         @Override
@@ -85,11 +80,6 @@ public class SynchronizedLists {
         }
 
         @Override
-        protected boolean contains(GameProfile profile) {
-            return bans.contains(profile);
-        }
-
-        @Override
         public void save() throws IOException {
             bans.save();
         }
@@ -120,11 +110,6 @@ public class SynchronizedLists {
         @SneakyThrows
         public @Nullable IpBanListEntry get(String profile) {
             return (IpBanListEntry) ipbans.get(profile);
-        }
-
-        @Override
-        protected boolean contains(String profile) {
-            return ipbans.contains(profile);
         }
 
         @Override
@@ -161,11 +146,6 @@ public class SynchronizedLists {
         }
 
         @Override
-        protected boolean contains(GameProfile profile) {
-            return whitelist.contains(profile);
-        }
-
-        @Override
         public void save() throws IOException {
             whitelist.save();
         }
@@ -193,54 +173,36 @@ public class SynchronizedLists {
         R.of(server.getPlayerList()).set(Mappings.of("whitelist", "field_14361"), new SynchronizedWhiteList());
 
         // Op/DeOp player if their status is changed on another server
-        Broker.subTopic(Constants.OPERATOR, bundle -> {
-            if (bundle.meta().action().equals(DataBundle.Action.PUT)) {
-                Optional.ofNullable(server.getPlayerList().getPlayer(UUID.fromString(bundle.meta().id())))
-                        .ifPresent(player -> bundle.get("entry", ServerOpListEntry.class)
-                                .ifPresent(entry -> server.getPlayerList().op(player.getGameProfile())));
-            }
-            if (bundle.meta().action().equals(DataBundle.Action.REMOVE)) {
-                Optional.ofNullable(server.getPlayerList().getPlayer(UUID.fromString(bundle.meta().id())))
-                        .ifPresent(player -> bundle.get("entry", ServerOpListEntry.class)
-                                .ifPresent(entry -> server.getPlayerList().deop(player.getGameProfile())));
-            }
-        });
+        ops.setOnAdded((profile, entry) -> Optional.ofNullable(server.getPlayerList().getPlayer(profile.getId()))
+                .ifPresent(player -> server.getPlayerList().sendPlayerPermissionLevel(player)));
+        ops.setOnRemoved(profile -> Optional.ofNullable(server.getPlayerList().getPlayer(profile.getId()))
+                .ifPresent(player -> server.getPlayerList().sendPlayerPermissionLevel(player)));
 
         // Disconnect player if banned from another server
-        Broker.subTopic(Constants.BANNED_PLAYERS, bundle -> {
-            if (!bundle.meta().action().equals(DataBundle.Action.PUT)) return;
-
-            Optional.ofNullable(server.getPlayerList().getPlayer(UUID.fromString(bundle.meta().id())))
-                    .ifPresent(player -> bundle.get("entry", UserBanListEntry.class)
-                            .ifPresent(entry -> player.connection.disconnect(Component.literal(entry.getReason()))));
-        });
+        bans.setOnAdded((profile, entry) -> Optional.ofNullable(server.getPlayerList().getPlayer(profile.getId()))
+                .ifPresent(player -> player.connection.disconnect(Component.literal(((UserBanListEntry) entry).getReason()))));
 
         // Disconnect player if their ip is banned from another server
-        Broker.subTopic(Constants.BANNED_IPS, bundle -> {
-            if (!bundle.meta().action().equals(DataBundle.Action.PUT)) return;
-
-            bundle.get("entry", IpBanListEntry.class).ifPresent(entry -> {
-                for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-                    String playerIp = R.of(ipbans).call(Mappings.of("getIpFromAddress", "method_14526"), String.class, player.connection.getRemoteAddress());
-                    if (ipbans.getKey(entry).equals(Optional.of(playerIp))) {
-                        player.connection.disconnect(Component.literal(entry.getReason()));
-                        return;
-                    }
+        ipbans.setOnAdded((profile, entry) -> {
+            for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+                String playerIp = R.of(ipbans).call(Mappings.of("getIpFromAddress", "method_14526"), String.class, player.connection.getRemoteAddress());
+                if (ipbans.getKey(entry).equals(Optional.of(playerIp))) {
+                    player.connection.disconnect(Component.literal(((IpBanListEntry) entry).getReason()));
+                    return;
                 }
-            });
+            }
+        });
+
+        // Disconnect player if they are removed from the whitelist
+        whitelist.setOnRemoved(profile -> {
+            if (!server.isEnforceWhitelist()) return;
+            Optional.ofNullable(server.getPlayerList().getPlayer(profile.getId()))
+                    .ifPresent(player -> player.connection.disconnect(Component.literal("You are no longer whitelisted on this server!")));
         });
 
         // Disconnect player if un-whitelisted from another server
         Broker.subTopic(Constants.WHITELIST, bundle -> {
-            if (bundle.meta().id().equals("enabled")) {
-                server.setEnforceWhitelist(bundle.get("enabled", boolean.class).orElse(false));
-                return;
-            }
-
-            if (bundle.meta().action().equals(DataBundle.Action.REMOVE) && server.isEnforceWhitelist()) {
-                Optional.ofNullable(server.getPlayerList().getPlayer(UUID.fromString(bundle.meta().id())))
-                        .ifPresent(player -> player.connection.disconnect(Component.literal("You are no longer whitelisted on this server!")));
-            }
+            if (bundle.meta().id().equals("enabled")) server.setEnforceWhitelist(bundle.get("enabled", boolean.class).orElse(false));
         });
     }
 }

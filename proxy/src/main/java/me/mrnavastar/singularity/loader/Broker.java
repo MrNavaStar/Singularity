@@ -13,6 +13,7 @@ import me.mrnavastar.singularity.common.Constants;
 import me.mrnavastar.singularity.common.networking.DataBundle;
 import me.mrnavastar.singularity.common.networking.Topic;
 import me.mrnavastar.sqlib.api.DataContainer;
+import me.mrnavastar.sqlib.api.DataStore;
 import me.mrnavastar.sqlib.api.types.GsonTypes;
 import me.mrnavastar.sqlib.api.types.JavaTypes;
 import me.mrnavastar.sqlib.api.types.SQLibType;
@@ -53,6 +54,23 @@ public class Broker implements ProtoConnectionHandler {
                         .put(DATA_BUNDLE, "data", bundle));
     }
 
+    private void forward(ProtoServer origin, DataBundle bundle) {
+        // Run expensive lookups outside the filters
+        Set<ProtoServer> group = SingularityConfig.getSyncGroup(origin).map(SingularityConfig.SyncGroup::getServers).orElse(new HashSet<>());
+        Optional<ProtoServer> location = Velocity.getPlayerLocation(bundle);
+
+        subscriptions.getOrDefault(bundle.meta().topic(), new HashSet<>()).stream()     // Grab all servers subbed to this topic
+                .filter(s -> !Objects.equals(s, origin))                                // Filter out the server the packet was received from
+                .filter(s -> bundle.meta().topic().global() || group.contains(s))       // Filter out any servers that aren't part of the current sync group unless the topic is global
+                .filter(s -> {                                                          // Filter out servers based on propagation rules
+                    if (bundle.meta().propagation().equals(DataBundle.Propagation.ALL)) return true;
+                    if (bundle.meta().propagation().equals(DataBundle.Propagation.NONE)) return false;
+                    // Propagation type must be PLAYER
+                    return location.isPresent() && Objects.equals(location.get(), s);
+                })
+                .forEach(s -> s.getConnection(PROTOCOL).ifPresent(con -> con.send(bundle)));
+    }
+
     @Override
     public void onReady(ProtoConnection connection) {
         ProtoProxy.getConnectedServer(connection)
@@ -74,30 +92,25 @@ public class Broker implements ProtoConnectionHandler {
                                 .flatMap(c -> c.get(DATA_BUNDLE, "data"))
                                 .ifPresentOrElse(data -> connection.send(data.meta(meta)), () -> connection.send(meta));
 
-                        case REMOVE -> SingularityConfig.getSyncGroup(server)
-                                .flatMap(store -> store.getTopicStore(meta.topic()).getContainer("id", meta.id()))
-                                .ifPresent(DataContainer::delete);
+                        /*case GET_ALL -> SingularityConfig.getSyncGroup(server).ifPresent(store ->
+                                store.getTopicStore(meta.topic()).getContainers().forEach(c -> c.get(DATA_BUNDLE, "data")
+                                        .ifPresentOrElse(data -> connection.send(data.meta(meta)), () -> connection.send(meta))));*/
+
+                        case REMOVE -> {
+                            Optional<DataContainer> container = SingularityConfig.getSyncGroup(server)
+                                .flatMap(store -> store.getTopicStore(meta.topic()).getContainer("id", meta.id()));
+
+                            container.flatMap(c -> c.get(DATA_BUNDLE, "data")).ifPresent(bundle -> {
+                                container.get().delete();
+                                forward(server, bundle);
+                            });
+                        }
                     }
                 }
                 // Process data bundle put action and data propagation
                 case DataBundle bundle -> {
                     if (!DataBundle.Action.PUT.equals(bundle.meta().action())) return;
-
-                    // Run expensive lookups outside the filters
-                    Set<ProtoServer> group = SingularityConfig.getSyncGroup(server).map(SingularityConfig.SyncGroup::getServers).orElse(new HashSet<>());
-                    Optional<ProtoServer> location = Velocity.getPlayerLocation(bundle);
-
-                    subscriptions.getOrDefault(bundle.meta().topic(), new HashSet<>()).stream()     // Grab all servers subbed to this topic
-                            .filter(s -> !Objects.equals(s, server))                                // Filter out the server the packet was received from
-                            .filter(s -> bundle.meta().topic().global() || group.contains(s))       // Filter out any servers that aren't part of the current sync group unless the topic is global
-                            .filter(s -> {                                                          // Filter out servers based on propagation rules
-                                if (bundle.meta().propagation().equals(DataBundle.Propagation.ALL)) return true;
-                                if (bundle.meta().propagation().equals(DataBundle.Propagation.NONE)) return false;
-                                // Propagation type must be PLAYER
-                                return location.isPresent() && Objects.equals(location.get(), s);
-                            })
-                            .forEach(s -> s.getConnection(PROTOCOL).ifPresent(con -> con.send(bundle)));
-
+                    forward(server, bundle);
                     if (bundle.meta().persist()) storeBundle(server, bundle);
                 }
                 default -> PROTOCOL.logWarn("Ignoring unknown packet: " + packet);

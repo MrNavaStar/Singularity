@@ -2,12 +2,9 @@ package me.mrnavastar.singularity.loader.api;
 
 import me.mrnavastar.protoweaver.api.util.Event;
 import me.mrnavastar.singularity.common.networking.DataBundle;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 
 public class Singularity {
-
-    protected static MinecraftServer server;
 
     public static final Event<PlayerData> PRE_PUSH_PLAYER_DATA = new Event<>(callbacks -> (player, data) -> {
         callbacks.forEach(callback -> callback.trigger(player, data));

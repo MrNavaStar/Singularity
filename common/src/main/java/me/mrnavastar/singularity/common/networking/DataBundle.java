@@ -19,6 +19,7 @@ public class DataBundle {
     public enum Action {
         PUT,
         GET,
+        GET_ALL,
         REMOVE,
         NONE
     }

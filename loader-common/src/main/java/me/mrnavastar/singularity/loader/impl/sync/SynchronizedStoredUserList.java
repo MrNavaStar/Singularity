@@ -2,9 +2,11 @@ package me.mrnavastar.singularity.loader.impl.sync;
 
 import com.google.gson.JsonObject;
 import com.mojang.authlib.GameProfile;
+import lombok.Setter;
 import lombok.SneakyThrows;
 import me.mrnavastar.r.R;
 import me.mrnavastar.singularity.common.networking.DataBundle;
+import me.mrnavastar.singularity.loader.api.Singularity;
 import me.mrnavastar.singularity.loader.impl.Broker;
 import me.mrnavastar.singularity.loader.impl.serialization.StoredUserEntrySerializer;
 import me.mrnavastar.singularity.loader.util.Mappings;
@@ -19,7 +21,9 @@ import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.BiConsumer;
 import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 
 // TODO: improve performance by keeping an in memory copy of the last value for any players currently on the server
 public class SynchronizedStoredUserList<T> extends StoredUserList<T, StoredUserEntry<T>> {
@@ -27,12 +31,27 @@ public class SynchronizedStoredUserList<T> extends StoredUserList<T, StoredUserE
     private final String topic;
     private final Class<? extends StoredUserEntry<T>> entryType;
     private final BooleanSupplier enabled;
+    @Setter
+    private BiConsumer<T, StoredUserEntry<T>> onAdded;
+    @Setter
+    private Consumer<T> onRemoved;
 
-    public SynchronizedStoredUserList(String topic, Class<? extends StoredUserEntry<T>> entryType, BooleanSupplier enabled, File file) {
+    public SynchronizedStoredUserList(String topic, Class<? extends StoredUserEntry<T>> entryType, BooleanSupplier enabled, boolean playerBased, File file) {
         super(file);
         this.topic = topic;
         this.entryType = entryType;
         this.enabled = enabled;
+
+        Broker.subTopic(topic, bundle -> {
+            switch (bundle.meta().action()) {
+                case PUT -> bundle.get("entry", entryType).ifPresent(this::add);
+                case REMOVE -> bundle.get("entry", entryType).ifPresent(this::remove);
+            }
+        });
+
+        if (playerBased) {
+            Singularity.POST_RECEIVE_PLAYER_DATA.register((player, bundle) -> get((T) player.getGameProfile()));
+        }
     }
 
     @Override
@@ -46,54 +65,48 @@ public class SynchronizedStoredUserList<T> extends StoredUserList<T, StoredUserE
         return Optional.empty();
     }
 
+    public T getUser(StoredUserEntry<T> entry) {
+        return (T) R.of(entry).get(Mappings.of("user", "field_14368"), Object.class);
+    }
+
     public Optional<String> getKey(StoredUserEntry<T> entry) {
-       return getKey(R.of(entry).get(Mappings.of("user", "field_14368"), Object.class));
+       return getKey(getUser(entry));
     }
 
     @Override
     public void add(StoredUserEntry<T> entry) {
-        if (!enabled.getAsBoolean()) {
-            super.add(entry);
-            return;
-        }
+        super.add(entry);
         getKey(entry).ifPresent(key ->
                 Broker.putTopic(topic, key, new DataBundle()
                 .meta(new DataBundle.Meta().propagation(DataBundle.Propagation.ALL))
                 .put("entry", entry)));
+        if (onAdded != null) onAdded.accept(getUser(entry), entry);
     }
 
     @Override
     public void remove(T object) {
-        if (!enabled.getAsBoolean()) {
-            super.remove(object);
-            return;
-        }
+        super.remove(object);
         getKey(object).ifPresent(key ->  Broker.removeTopic(topic, key));
+        if (onRemoved != null) onRemoved.accept(object);
     }
 
     @SneakyThrows
     @Override
     public @Nullable StoredUserEntry<T> get(T object) {
-        if (!enabled.getAsBoolean()) return super.get(object);
-        return getKey(object).flatMap(key -> {
-                    try {
-                        return Broker.getTopic(topic, key).get(5, TimeUnit.SECONDS);
-                    } catch (InterruptedException | ExecutionException | TimeoutException e) {
-                        return Optional.empty();
-                    }
-                })
-                .flatMap(bundle -> bundle.get("entry", entryType)).orElse(null);
-    }
+        StoredUserEntry<T> entry = super.get(object);
+        if (entry != null) return entry;
 
-    @Override
-    protected boolean contains(T object) {
-        if (!enabled.getAsBoolean()) super.contains(object);
-        return get(object) != null;
-    }
+        entry = getKey(object).flatMap(key -> {
+                try {
+                    return Broker.getTopic(topic, key).get(5, TimeUnit.SECONDS);
+                } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                    return Optional.empty();
+                }
+            })
+            .flatMap(bundle -> bundle.get("entry", entryType)).orElse(null);
 
-    @Override
-    public boolean isEmpty() {
-        return super.isEmpty();
+        if (entry != null) add(entry);
+        return entry;
     }
 
     @Override
