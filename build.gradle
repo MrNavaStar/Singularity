@@ -1,5 +1,5 @@
 plugins {
-    id "io.freefair.lombok" version "8.11" apply false
+    id "io.freefair.lombok" version "8.12.1" apply false
     id "architectury-plugin" version "3.4-SNAPSHOT"
     id "dev.architectury.loom" version "1.7-SNAPSHOT" apply false
 }
