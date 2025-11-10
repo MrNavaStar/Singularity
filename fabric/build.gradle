@@ -20,7 +20,7 @@ dependencies {
     modLocalRuntime "maven.modrinth:fabricproxy-lite:${project.proxy_lite_version}"
     modLocalRuntime "com.moandjiezana.toml:toml4j:${project.toml4j_version}"
 
-    productionRuntime "net.fabricmc:fabric-installer:1.0.1:server"
+    productionRuntime "net.fabricmc:fabric-installer:1.1.0:server"
 }
 
 jar {
